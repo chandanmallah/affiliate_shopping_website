@@ -82,16 +82,16 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'affiliatewebapp',
-        'USER': 'affiliatewebapp_user',
-        'PASSWORD': 'bNntb1LXNHNqVxSaDAK9mvbyzfGEz0r3',
-        'HOST': 'dpg-cvvnvre5dus73cfm080-a',
-        'PORT': '5432',
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'affiliatewebapp',
+#         'USER': 'affiliatewebapp_user',
+#         'PASSWORD': 'bNntb1LXNHNqVxSaDAK9mvbyzfGEz0r3',
+#         'HOST': 'dpg-cvvnvre5dus73cfm080-a',
+#         'PORT': '5432',
+#     }
+# }
 
 
 # Password validation
