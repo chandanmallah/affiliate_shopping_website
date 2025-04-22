@@ -1,1 +1,1 @@
-web: gunicorn affiliate_shopping_website.wsgi
+web: gunicorn myproject.wsgi
