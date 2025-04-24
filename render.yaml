@@ -3,7 +3,7 @@ services:
     name: affiliate_shopping_website
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn affiliate_shopping_website.wsgi:application
+    startCommand: gunicorn myproject.wsgi:application
     autoDeploy: true
     postDeploy:
       - python manage.py migrate
