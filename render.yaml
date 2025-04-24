@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: affiliate_shopping_website
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn affiliate_shopping_website.wsgi:application
+    autoDeploy: true
+    postDeploy:
+      - python manage.py migrate
+      - python manage.py collectstatic --noinput
