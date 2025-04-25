@@ -19,8 +19,97 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Product Listing</title>
-
+  <style>
+    /* Light theme logo for zanchan.shop */
+    .logo {
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    
+    .logo-icon {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      margin-right: 10px;
+    }
+    
+    .hexagon-bg {
+      position: absolute;
+      width: 38px;
+      height: 22px;
+      background: linear-gradient(90deg, #1e88e5, #0d47a1);
+      top: 9px;
+      left: 1px;
+      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+      box-shadow: 0 0 6px rgba(30, 136, 229, 0.4);
+      animation: slow-rotate 15s linear infinite;
+    }
+    
+    .inner-hexagon {
+      position: absolute;
+      width: 30px;
+      height: 17px;
+      background: #ffffff;
+      top: 11.5px;
+      left: 5px;
+      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+      z-index: 1;
+    }
+    
+    .circle {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1e88e5, #0d47a1);
+      top: 10px;
+      left: 10px;
+      box-shadow: 0 0 5px rgba(30, 136, 229, 0.4);
+      z-index: 2;
+    }
+    
+    .inner-circle {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      top: 13px;
+      left: 13px;
+      z-index: 3;
+    }
+    
+    .logo-text {
+      font-size: 20px;
+      font-weight: bold;
+      text-transform: lowercase;
+      letter-spacing: 1px;
+      color: #2c3e50;
+    }
+    
+    .shop-text {
+      color: #1e88e5;
+    }
+    
+    @keyframes slow-rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
+<body>
+  <header>
+    <div class="logo">
+      <div class="logo-icon">
+        <div class="hexagon-bg"></div>
+        <div class="inner-hexagon"></div>
+        <div class="circle"></div>
+        <div class="inner-circle"></div>
+      </div>
+      <h2 class="logo-text">zanchan<span class="shop-text">.shop</span></h2>
+    </div>
+  </header>
 <body>
   <header>
     <div class="logo">
