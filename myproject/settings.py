@@ -83,6 +83,7 @@ TEMPLATES = [
 # ]
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
+SHORTENER_DOMAIN = "https://affiliatelinks.in"
 
 
 # Database
