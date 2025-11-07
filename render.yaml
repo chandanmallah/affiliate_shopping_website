@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: affiliatelinks
+    env: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn myproject.wsgi:application"
+    routes:
+      - type: rewrite
+        source: "/(.*)"
+        destination: "/"
