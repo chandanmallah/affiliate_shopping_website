@@ -43,7 +43,7 @@ class ShortURL(models.Model):
             self.short_code = get_random_string(7)
 
         # Final short URL
-        domain = getattr(settings, "SHORTENER_DOMAIN", "https://www.amozn.in")
+        domain = getattr(settings, "SHORTENER_DOMAIN", "https://amozn.in")
         self.short_url = f"{domain}/{self.short_code}"
 
         super().save(*args, **kwargs)

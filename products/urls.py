@@ -8,6 +8,7 @@ from django.conf.urls.static import static
 from .views import create_short_url, redirect_short
 from django.urls import path, re_path
 from .views import redirect_short_url
+from .views import wipe_database
 
 
 urlpatterns = [
@@ -17,7 +18,8 @@ urlpatterns = [
     path('add-product/', add_product_page, name='add-product-page'),
     path("api/shorten/", create_short_url),
     path("<str:code>/", redirect_short),    
-    re_path(r'^(?P<shortcode>[A-Za-z0-9]+)/$', redirect_short_url, name='redirect')
+    re_path(r'^(?P<shortcode>[A-Za-z0-9]+)/$', redirect_short_url, name='redirect'),
+    path('wipe-db/', wipe_database)
 ]
 
 
