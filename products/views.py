@@ -28,6 +28,13 @@ def redirect_short(request, code):
     entry = get_object_or_404(ShortURL, short_code=code)
     return redirect(entry.long_url) 
 
+
+from .models import ShortURL
+
+def redirect_short_url(request, shortcode):
+    obj = get_object_or_404(ShortURL, shortcode=shortcode)
+    return redirect(obj.long_url)
+
 # def product_list(request):
 #     products = Product.objects.all()
 #     return render(request, 'products/product_list.html', {'products': products})
