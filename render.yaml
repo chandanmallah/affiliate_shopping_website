@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: affiliatelinks
+    name: amozn
     env: python
     plan: free
     buildCommand: "./build.sh"

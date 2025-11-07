@@ -83,7 +83,7 @@ TEMPLATES = [
 # ]
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
-SHORTENER_DOMAIN = "https://affiliatelinks.in"
+SHORTENER_DOMAIN = "https://www.amozn.in"
 # SHORTENER_DOMAIN = "http://127.0.0.1:8000/"
 
 
