@@ -84,17 +84,17 @@ from rest_framework import status
 from .models import AmazonLink, Product, ShortURL
 from django.conf import settings
 
-@api_view(['POST'])
-def wipe_database(request):
-    secret = request.data.get("secret")
+# @api_view(['POST'])
+# def wipe_database(request):
+#     secret = request.data.get("secret")
 
-    # ✅ Protect the endpoint
-    if secret != settings.ADMIN_SECRET:
-        return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+#     # ✅ Protect the endpoint
+#     if secret != settings.ADMIN_SECRET:
+#         return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
 
-    # ✅ Delete all data
-    # Product.objects.all().delete()
-    # AmazonLink.objects.all().delete()
-    ShortURL.objects.all().delete()
+#     # ✅ Delete all data
+#     # Product.objects.all().delete()
+#     # AmazonLink.objects.all().delete()
+#     ShortURL.objects.all().delete()
 
-    return Response({"message": "All data deleted successfully!"})
+#     return Response({"message": "All data deleted successfully!"})

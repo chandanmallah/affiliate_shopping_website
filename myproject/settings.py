@@ -85,7 +85,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'myproject.wsgi.application'
 SHORTENER_DOMAIN = "https://amozn.in"
 
-ADMIN_SECRET = config("ADMIN_SECRET")
+# ADMIN_SECRET = config("ADMIN_SECRET")
 # SHORTENER_DOMAIN = "http://127.0.0.1:8000/"
 
 
