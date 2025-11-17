@@ -32,7 +32,7 @@ class Product(models.Model):
 
 
 class ShortURL(models.Model):
-    long_url = models.URLField(max_length=1500, unique=True)  # ✅ no duplicates
+    long_url = models.URLField(max_length=500, unique=True)  # ✅ no duplicates
     short_code = models.CharField(max_length=10, unique=True)
     short_url = models.URLField(max_length=300, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
