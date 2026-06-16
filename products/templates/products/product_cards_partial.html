@@ -1,0 +1,22 @@
+{% for product in page_obj %}
+<div class="product-card">
+  <div class="product-image-wrap">
+    <span class="amazon-badge">amazon</span>
+    <img src="{{ product.image_url }}" alt="{{ product.link.title }}" class="product-image" loading="lazy" />
+  </div>
+  <div class="product-details">
+    <h2 class="product-title">{{ product.link.title }}</h2>
+    <div class="product-meta">
+      <span class="stars">★★★★☆</span>
+      <span class="review-count">on Amazon</span>
+    </div>
+    <p class="product-description">{{ product.description|truncatechars:110 }}</p>
+    <a href="/product/{{ product.link.slug }}/" class="view-button">
+      View on Amazon
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </a>
+  </div>
+</div>
+{% endfor %}

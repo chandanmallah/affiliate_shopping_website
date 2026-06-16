@@ -6,7 +6,8 @@ from django.utils.crypto import get_random_string
 from django.conf import settings
 
 class AmazonLink(models.Model):
-    product_url = models.URLField(max_length=500)
+    # Changed max_length from 500 to 2000
+    product_url = models.URLField(max_length=2000) 
     title = models.CharField(max_length=200, blank=True)
     slug = models.SlugField(unique=True, blank=True)
     added_at = models.DateTimeField(auto_now_add=True)
@@ -24,7 +25,8 @@ class AmazonLink(models.Model):
 class Product(models.Model):
     link = models.OneToOneField(AmazonLink, on_delete=models.CASCADE)
     description = models.TextField(blank=True)
-    image_url = models.URLField(blank=True)  # ✅ New field
+    # Changed max_length to 2000 to match just in case
+    image_url = models.URLField(max_length=2000, blank=True)  
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -32,20 +34,19 @@ class Product(models.Model):
 
 
 class ShortURL(models.Model):
-    long_url = models.URLField(max_length=500, unique=True)  # ✅ no duplicates
-    short_code = models.CharField(max_length=10, unique=True)
-    short_url = models.URLField(max_length=300, blank=True)
+    # Changed max_length from 500 to 2000
+    long_url = models.URLField(max_length=2000, unique=True)  
+    short_code = models.CharField(max_length=10, unique=True, db_index=True)
+    # Changed max_length from 300 to 1000
+    short_url = models.URLField(max_length=1000, blank=True)  
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        # Generate new short code only for new entries
         if not self.short_code:
             self.short_code = get_random_string(7)
 
-        # Final short URL
         domain = getattr(settings, "SHORTENER_DOMAIN", "https://amozn.in")
         self.short_url = f"{domain}/{self.short_code}"
-
         super().save(*args, **kwargs)
 
     def __str__(self):

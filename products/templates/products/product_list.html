@@ -2,272 +2,675 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/chandanmallah/css_for_affiliate@main/styles.css">
-  <!-- <link rel="stylesheet" type="text/css" href="file:///C:/Users/Administrator/Desktop/affilaite%20deployed/affiliate_shopping_website/products/static/products/css/styles.css"> -->
-  <link rel="stylesheet" href="{% static 'products/css/styles.css' %}">  
-
-  <meta name="verify-admitad" content="c2fdda4e7e" />
- 
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HXD0PPQM64"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-HXD0PPQM64');
-  </script>   
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7591421129198559"
-  crossorigin="anonymous"></script>  
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Product Listing</title>
+  <title>CM.shop - Premium Affiliate Hub</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+  
   <style>
-    /* Light theme logo for zanchan.shop */
-    .logo {
-      display: flex;
-      align-items: center;
+    :root {
+      --bg-page: #eef2f7;
+      --bg-card: #ffffff;
+      --bg-card-img: #f8fafc;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --blue-600: #2563eb;
+      --blue-500: #3b82f6;
+      --blue-100: #dbeafe;
+      --blue-50: #eff6ff;
+      --slate-200: #e2e8f0;
+      --slate-300: #cbd5e1;
+      --slate-700: #334155;
+      --green-600: #16a34a;
+      --green-50: #f0fdf4;
+      --shadow-card: 0 1px 3px rgba(15,23,42,0.06), 0 8px 24px rgba(15,23,42,0.08);
+      --shadow-card-hover: 0 4px 6px rgba(15,23,42,0.05), 0 16px 40px rgba(15,23,42,0.12);
+      --shadow-btn: 0 1px 2px rgba(37,99,235,0.3), 0 4px 12px rgba(37,99,235,0.25);
+      --radius-card: 16px;
+      --radius-btn: 10px;
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-page); color: var(--text-primary); min-height: 100vh; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
+
+    /* ── HEADER ── */
+    header {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border-bottom: 1px solid var(--slate-200);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo-text { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary); }
+    .logo-text .shop { color: var(--blue-600); }
+    nav { display: flex; gap: 0.75rem; align-items: center; }
+    nav a { font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); text-decoration: none; padding: 0.5rem 0.9rem; border-radius: 8px; transition: var(--transition); }
+    nav a:hover { color: var(--text-primary); background: var(--bg-page); }
+    .nav-cta {
+      font-size: 0.875rem; font-weight: 600;
+      color: #fff !important;
+      background: var(--blue-600);
+      padding: 0.55rem 1.15rem !important;
+      border-radius: var(--radius-btn);
+      box-shadow: var(--shadow-btn);
+      display: flex; align-items: center; gap: 0.4rem;
+      transition: var(--transition);
+    }
+    .nav-cta:hover { background: #1d4ed8 !important; box-shadow: 0 2px 8px rgba(37,99,235,0.4); transform: translateY(-1px); }
+
+    /* ── HERO STRIP ── */
+    .hero-strip {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%);
+      padding: 2.5rem 2rem;
+      text-align: center;
+      color: white;
+    }
+    .hero-strip h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+    .hero-strip p { font-size: 0.9rem; color: rgba(255,255,255,0.75); font-weight: 400; }
+
+    /* ── MAIN ── */
+    .main-content { flex: 1; max-width: 1280px; width: 100%; margin: 0 auto; padding: 2.5rem 2rem; }
+
+    /* Filter bar */
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+    .toolbar-label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* ── PRODUCT GRID ── */
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; }
+
+    /* ── PRODUCT CARD ── */
+    .product-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-card);
+      border: 1px solid var(--slate-200);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
       position: relative;
     }
-    
-    .logo-icon {
+    .product-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card-hover);
+      border-color: var(--blue-100);
+    }
+
+    /* Image area */
+    .product-image-wrap {
+      background: var(--bg-card-img);
+      border-bottom: 1px solid var(--slate-200);
+      padding: 1.5rem;
+      aspect-ratio: 1 / 1;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
       position: relative;
-      width: 40px;
-      height: 40px;
-      margin-right: 10px;
     }
-    
-    .hexagon-bg {
-      position: absolute;
-      width: 38px;
-      height: 22px;
-      background: linear-gradient(90deg, #1e88e5, #0d47a1);
-      top: 9px;
-      left: 1px;
-      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-      box-shadow: 0 0 6px rgba(30, 136, 229, 0.4);
-      animation: slow-rotate 15s linear infinite;
+    .product-image { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.3s ease; }
+    .product-card:hover .product-image { transform: scale(1.04); }
+
+    /* Amazon badge */
+    .amazon-badge {
+      position: absolute; top: 10px; right: 10px;
+      background: #FF9900;
+      color: #131921;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 3px 7px;
+      border-radius: 5px;
+      text-transform: uppercase;
     }
-    
-    .inner-hexagon {
-      position: absolute;
-      width: 30px;
-      height: 17px;
-      background: #ffffff;
-      top: 11.5px;
-      left: 5px;
-      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-      z-index: 1;
+
+    /* Details */
+    .product-details { padding: 1.25rem; display: flex; flex-direction: column; flex: 1; }
+    .product-title {
+      font-size: 0.925rem; font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.45;
+      margin-bottom: 0.5rem;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
-    
-    .circle {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #1e88e5, #0d47a1);
-      top: 10px;
-      left: 10px;
-      box-shadow: 0 0 5px rgba(30, 136, 229, 0.4);
-      z-index: 2;
+    .product-description {
+      font-size: 0.8rem; color: var(--text-secondary);
+      line-height: 1.55; margin-bottom: 1rem;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      flex: 1;
     }
-    
-    .inner-circle {
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #ffffff;
-      top: 13px;
-      left: 13px;
-      z-index: 3;
+
+    /* Stars placeholder */
+    .product-meta { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .stars { color: #f59e0b; font-size: 0.75rem; letter-spacing: 1px; }
+    .review-count { font-size: 0.72rem; color: var(--text-muted); }
+
+    /* CTA */
+    .view-button {
+      display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+      padding: 0.65rem 1rem;
+      background: var(--blue-600);
+      color: #fff;
+      border-radius: var(--radius-btn);
+      font-size: 0.85rem; font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 1px 3px rgba(37,99,235,0.25);
+      transition: var(--transition);
+      margin-top: auto;
     }
-    
-    .logo-text {
-      font-size: 20px;
-      font-weight: bold;
-      text-transform: lowercase;
-      letter-spacing: 1px;
-      color: #2c3e50;
+    .view-button:hover { background: #1d4ed8; box-shadow: 0 4px 12px rgba(37,99,235,0.35); }
+    .view-button svg { flex-shrink: 0; }
+
+    /* Scroll loader */
+    .scroll-loader { display: none; text-align: center; padding: 2.5rem; width: 100%; grid-column: 1/-1; }
+    .loader-ring { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--slate-200); border-top-color: var(--blue-500); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(15,23,42,0.5);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      justify-content: center; align-items: center;
+      padding: 1rem;
     }
-    
-    .shop-text {
-      color: #1e88e5;
+    .modal-box {
+      background: #fff;
+      border-radius: 20px;
+      border: 1px solid var(--slate-200);
+      max-width: 460px; width: 100%;
+      padding: 2rem;
+      box-shadow: 0 24px 64px rgba(15,23,42,0.18);
+      position: relative;
     }
-    
-    @keyframes slow-rotate {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    .modal-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .modal-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+    .close-modal { position: absolute; top: 1rem; right: 1.25rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); line-height: 1; }
+    .close-modal:hover { color: var(--text-primary); }
+    .form-group { margin-bottom: 1.1rem; }
+    .form-group label { display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); margin-bottom: 0.45rem; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 0.7rem 0.9rem;
+      background: var(--bg-page); border: 1px solid var(--slate-300);
+      border-radius: 10px; font-size: 0.875rem; color: var(--text-primary);
+      transition: var(--transition); outline: none;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: var(--blue-500); box-shadow: 0 0 0 3px var(--blue-100); }
+    .hidden-input-wrapper { display: none; margin-top: 0.75rem; }
+    .submit-btn {
+      width: 100%; padding: 0.85rem;
+      background: var(--blue-600); color: #fff;
+      border: none; border-radius: var(--radius-btn);
+      font-size: 0.925rem; font-weight: 700;
+      cursor: pointer; box-shadow: var(--shadow-btn);
+      transition: var(--transition);
+    }
+    .submit-btn:hover { background: #1d4ed8; }
+    .result-box { margin-top: 1.25rem; display: none; padding: 1rem 1.25rem; background: var(--green-50); border: 1px solid #bbf7d0; border-radius: 12px; }
+    .result-box a { color: var(--green-600); font-weight: 700; font-size: 0.9rem; word-break: break-all; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0f172a;
+      color: #94a3b8;
+      padding: 3rem 2rem 1.5rem;
+      margin-top: auto;
+    }
+    .footer-inner { max-width: 1280px; margin: 0 auto; }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 2.5rem;
+      padding-bottom: 2.5rem;
+      border-bottom: 1px solid #1e293b;
+    }
+    .footer-brand .brand-name { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 0.6rem; }
+    .footer-brand .brand-name span { color: var(--blue-500); }
+    .footer-brand p { font-size: 0.8rem; line-height: 1.6; color: #64748b; max-width: 260px; }
+    .footer-col h4 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #cbd5e1; margin-bottom: 1rem; }
+    .footer-col a { display: block; font-size: 0.825rem; color: #64748b; text-decoration: none; margin-bottom: 0.5rem; transition: color 0.15s; }
+    .footer-col a:hover { color: #fff; }
+
+    /* Amazon disclosure — prominent, required by ToS */
+    .affiliate-disclosure {
+      margin: 1.75rem 0 1.25rem;
+      padding: 1rem 1.25rem;
+      background: rgba(255,153,0,0.08);
+      border: 1px solid rgba(255,153,0,0.2);
+      border-radius: 10px;
+      display: flex; align-items: flex-start; gap: 0.75rem;
+    }
+    .disclosure-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+    .disclosure-text { font-size: 0.775rem; line-height: 1.6; color: #94a3b8; }
+    .disclosure-text strong { color: #fbbf24; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+
+    .footer-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; padding-top: 1.25rem; }
+    .footer-bottom p { font-size: 0.775rem; color: #475569; }
+    .footer-bottom a { color: #64748b; text-decoration: none; }
+    .footer-bottom a:hover { color: #fff; }
+
+    /* ── TOAST NOTIFICATION ── */
+    .toast {
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #0f172a; color: #fff;
+      padding: 0.75rem 1.25rem; border-radius: 12px;
+      font-size: 0.85rem; font-weight: 500;
+      display: flex; align-items: center; gap: 0.5rem;
+      box-shadow: 0 8px 24px rgba(15,23,42,0.3);
+      z-index: 9999; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+      opacity: 0; pointer-events: none; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast-icon { font-size: 1rem; }
+
+    /* Result box enhancements */
+    .result-box {
+      margin-top: 1.25rem; display: none;
+      padding: 1rem 1.25rem;
+      background: var(--green-50);
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+    }
+    .result-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #16a34a; margin-bottom: 0.4rem; }
+    .result-url-row { display: flex; align-items: center; gap: 0.5rem; }
+    .result-url-row a { color: #15803d; font-weight: 600; font-size: 0.85rem; word-break: break-all; flex: 1; text-decoration: none; }
+    .result-url-row a:hover { text-decoration: underline; }
+    .copy-btn {
+      flex-shrink: 0; padding: 0.4rem 0.75rem;
+      background: #16a34a; color: #fff;
+      border: none; border-radius: 7px;
+      font-size: 0.75rem; font-weight: 700;
+      cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; gap: 0.3rem;
+    }
+    .copy-btn:hover { background: #15803d; }
+    .copy-btn.copied { background: #0f172a; }
+
+    /* Generating state */
+    .submit-btn.loading { opacity: 0.7; pointer-events: none; }
+    .submit-btn .btn-spinner {
+      display: none; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    .submit-btn.loading .btn-text { display: none; }
+    .submit-btn.loading .btn-spinner { display: inline-block; }
+
+    /* ── RESPONSIVE — MOBILE FIRST ── */
+    /* Base: 320px — already flex/grid so most things adapt */
+
+    @media (max-width: 640px) {
+      /* Header */
+      header { padding: 0 1rem; height: 56px; }
+      .logo-text { font-size: 1.15rem; }
+      nav a:not(.nav-cta) { display: none; }
+      .nav-cta { font-size: 0.78rem !important; padding: 0.48rem 0.85rem !important; gap: 0.3rem; }
+      .nav-cta svg { display: none; }
+
+      /* Hero */
+      .hero-strip { padding: 1.75rem 1rem; }
+      .hero-strip h1 { font-size: 1.2rem; }
+      .hero-strip p { font-size: 0.8rem; }
+
+      /* Grid — 2 columns on phones */
+      .main-content { padding: 1.25rem 0.875rem; }
+      .product-grid { grid-template-columns: repeat(2, 1fr); gap: 0.875rem; }
+
+      /* Tighter cards on small screens */
+      .product-image-wrap { padding: 1rem; }
+      .product-details { padding: 0.875rem; }
+      .product-title { font-size: 0.8rem; }
+      .product-description { display: none; } /* hide desc on very small to keep cards compact */
+      .product-meta { margin-bottom: 0.6rem; }
+      .view-button { font-size: 0.75rem; padding: 0.55rem 0.6rem; }
+
+      /* Modal — full screen bottom sheet on mobile */
+      .modal-overlay { align-items: flex-end; padding: 0; }
+      .modal-box {
+        border-radius: 20px 20px 0 0;
+        max-width: 100%; width: 100%;
+        padding: 1.5rem 1.25rem 2rem;
+        /* safe area for iPhone notch */
+        padding-bottom: max(2rem, env(safe-area-inset-bottom));
+      }
+      .modal-title { font-size: 1.1rem; }
+
+      /* Footer */
+      footer { padding: 2rem 1rem 1.25rem; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+      .footer-brand { grid-column: 1 / -1; }
+      .footer-brand p { max-width: 100%; }
+      .footer-bottom { flex-direction: column; text-align: center; gap: 0.4rem; }
+    }
+
+    @media (max-width: 360px) {
+      .product-grid { grid-template-columns: 1fr; }
+      .product-description { display: -webkit-box; } /* restore on single-col */
+    }
+
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .hero-strip h1 { font-size: 1.4rem; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 1.75rem; }
+      .footer-brand { grid-column: 1 / -1; }
+      nav a:not(.nav-cta) { display: none; }
     }
   </style>
 </head>
 <body>
+
   <header>
     <div class="logo">
-      <div class="logo-icon">
-        <div class="hexagon-bg"></div>
-        <div class="inner-hexagon"></div>
-        <div class="circle"></div>
-        <div class="inner-circle"></div>
-      </div>
-      <h2 class="logo-text">CM<span class="shop-text">.shop</span></h2>
+      <span class="logo-text">CM<span class="shop">.shop</span></span>
     </div>
     <nav>
-      <a href="#">Home</a>
-      <a href="#">Products</a>
+      <a href="/">Home</a>
       <a href="#">Collections</a>
-      <a href="#">About</a>
-      <a href="#">Contact</a>
-    </nav>    
+      <a href="#" id="triggerOverlay" class="nav-cta">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Create Affiliate Link
+      </a>
+    </nav>
   </header>
 
-  <div class="main-content">
-    <div class="section-header">
-      <h2 class="section-title">Discover Our Collection</h2>
-      <div class="filter-options">
-        <button class="filter-button">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-          </svg>
-          Filter
-        </button>
-        <button class="filter-button">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="21" y1="10" x2="3" y2="10"></line>
-            <line x1="21" y1="6" x2="3" y2="6"></line>
-            <line x1="21" y1="14" x2="3" y2="14"></line>
-            <line x1="21" y1="18" x2="3" y2="18"></line>
-          </svg>
-          Sort
-        </button>
-      </div>
+  <div class="hero-strip">
+    <h1>Discover Our Active Collections</h1>
+    <p>Carefully curated products — click through to Amazon for the latest prices & availability</p>
+  </div>
+
+  <main class="main-content">
+    <div class="toolbar">
+      <span class="toolbar-label">Showing products</span>
     </div>
 
-    <section class="product-grid">
-      {% for product in products %}
-      <div class="product-card">
-        <a href="{{ product.link.product_url }}" target="_blank">
-          <div class="product-image-container">
-            <img src="{{ product.image_url }}" alt="{{ product.link.title }}" class="product-image" />
-            <div class="product-overlay"></div>
-          </div>
-          <div class="product-details">
-            <h2 class="product-title">{{ product.link.title }}</h2>
-            <p class="product-description">{{ product.description|truncatechars:120 }}</p>
-            <div class="product-footer">
-              <div class="product-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                New Arrival
-              </div>
-              <!-- <span class="view-button">
-                View
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-              </span> -->
-              <a href="/product/{{ product.link.slug }}/" class="view-button">
-                View
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-              </a>              
-            </div>
-          </div>
-        </a>
-      </div>
-      {% empty %}
-      <div class="empty-state" style="grid-column: 1 / -1;">
-        <div class="empty-state-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline>
-          </svg>
-        </div>
-        <h3>No products found</h3>
-        <p style="color: var(--text-secondary); max-width: 400px; margin: 1rem auto 0;">
-          We're currently updating our collection. Please check back soon for new exciting products.
-        </p>
-      </div>
-      {% endfor %}
+    <section class="product-grid" id="productGridContainer">
+      {% include 'products/product_cards_partial.html' %}
     </section>
 
+    <div class="scroll-loader" id="scrollLoader">
+      <div class="loader-ring"></div>
+    </div>
+  </main>
 
-  <footer>
-    <div class="footer-content">
-      <div class="footer-column">
-        <h3>CM Shop</h3>
-        <div class="footer-links">
-          <a href="#">About Us</a>
-          <a href="#">Our Mission</a>
-          <a href="#">Careers</a>
-          <a href="#">Press</a>
+  <!-- AFFILIATE LINK MODAL -->
+  <div class="modal-overlay" id="converterModal">
+    <div class="modal-box">
+      <button class="close-modal" id="dismissOverlay">&times;</button>
+      <h3 class="modal-title">Convert Affiliate Link</h3>
+      <p class="modal-subtitle">Paste any Amazon product URL to generate your tagged link</p>
+
+      <form id="affiliateFormEngine" method="post" action="#" onsubmit="return false;">
+        <div class="form-group">
+          <label>Amazon Product URL</label>
+          <input type="url" id="inputProductUrl" placeholder="https://www.amazon.in/dp/…" required>
+        </div>
+        <div class="form-group">
+          <label>Tracking Tag</label>
+          <select id="selectTrackingTag">
+            <option value="kuldeepsingh01-21">kuldeepsingh01-21</option>
+            <option value="brandinteger01-21">brandinteger01-21</option>
+            <option value="CUSTOM_TAG_TRIGGER">Enter manually…</option>
+          </select>
+          <div class="hidden-input-wrapper" id="customTagWrapper">
+            <label>Custom Tag</label>
+            <input type="text" id="customTagInput" placeholder="yourtag-21">
+          </div>
+        </div>
+        <button type="submit" class="submit-btn" id="actionProcessBtn">
+          <span class="btn-text">Generate Short Link</span>
+          <span class="btn-spinner"></span>
+        </button>
+      </form>
+
+      <div class="result-box" id="apiResponseWrapper">
+        <div class="result-label">✅ Your affiliate link is ready</div>
+        <div class="result-url-row">
+          <a id="renderedShortcutTarget" href="#" target="_blank" rel="noopener"></a>
+          <button class="copy-btn" id="copyLinkBtn" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy
+          </button>
         </div>
       </div>
-      
-      <div class="footer-column">
-        <h3>Shop</h3>
-        <div class="footer-links">
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand-name">CM<span>.shop</span></div>
+          <p>A curated affiliate storefront featuring top products across categories. Every link takes you directly to Amazon for a trusted shopping experience.</p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Shop</h4>
           <a href="#">All Products</a>
           <a href="#">Featured</a>
           <a href="#">New Arrivals</a>
           <a href="#">Best Sellers</a>
         </div>
-      </div>
-      
-      <div class="footer-column">
-        <h3>Support</h3>
-        <div class="footer-links">
+
+        <div class="footer-col">
+          <h4>Support</h4>
           <a href="#">Contact Us</a>
           <a href="#">FAQs</a>
-          <a href="#">Shipping</a>
+          <a href="#">Shipping Info</a>
           <a href="#">Returns</a>
         </div>
-      </div>
-      
-      <div class="footer-column">
-        <h3>Connect</h3>
-        <div class="footer-links">
+
+        <div class="footer-col">
+          <h4>Connect</h4>
           <a href="#">Instagram</a>
-          <a href="#">Twitter</a>
+          <a href="#">Twitter / X</a>
           <a href="#">Facebook</a>
           <a href="#">YouTube</a>
         </div>
       </div>
+
+      <!-- Amazon Associates Disclosure — Required by Amazon Associates Program Operating Agreement -->
+      <div class="affiliate-disclosure">
+        <span class="disclosure-icon">⚠️</span>
+        <div class="disclosure-text">
+          <strong>Amazon Associates Disclosure</strong>
+          CM.shop is a participant in the Amazon Associates Programme, an affiliate advertising programme designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.in. As an Amazon Associate, we earn from qualifying purchases. Product prices and availability are accurate as of the date/time indicated and are subject to change. Any price and availability information displayed on Amazon at the time of purchase will apply to the purchase of this product.
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>© 2025 Chandan Mallah &nbsp;·&nbsp; <a href="tel:9892590355">9892590355</a></p>
+        <p><a href="https://www.amazon.in" target="_blank" rel="noopener">Amazon.in</a> &nbsp;·&nbsp; <a href="#">Privacy Policy</a> &nbsp;·&nbsp; <a href="#">Terms of Use</a></p>
+      </div>
     </div>
-    
-    <div class="footer-bottom">
-      <p>© 2025 Chandan Mallah | Contact: <a href="tel:9892590355">9892590355</a></p>
-      <p><em>As an Amazon Associate, I earn from qualifying purchases.</em></p>
-    </div>
-    
   </footer>
-  
+
+  <!-- Toast notification -->
+  <div class="toast" id="globalToast">
+    <span class="toast-icon" id="toastIcon">✅</span>
+    <span id="toastMsg">Copied!</span>
+  </div>
 
   <script>
-    // Add a small animation for the page loading
     document.addEventListener('DOMContentLoaded', () => {
-      const cards = document.querySelectorAll('.product-card');
-      
-      cards.forEach((card, index) => {
-        setTimeout(() => {
-          card.style.opacity = '1';
-          card.style.transform = 'translateY(0)';
-        }, 100 * index);
+
+      /* ── TOAST HELPER ── */
+      const toast = document.getElementById('globalToast');
+      let toastTimer;
+      function showToast(msg, icon = '✅') {
+        document.getElementById('toastMsg').textContent = msg;
+        document.getElementById('toastIcon').textContent = icon;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+      }
+
+      /* ── CLIPBOARD HELPER ── */
+      async function copyText(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {
+          // Fallback for older mobile browsers
+          const ta = document.createElement('textarea');
+          ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.focus(); ta.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          return ok;
+        }
+      }
+
+      /* ── INFINITE SCROLL ── */
+      let currentPage = 1;
+      let hasNextPage = {% if page_obj.has_next %}true{% else %}false{% endif %};
+      let isFetchingBatch = false;
+      const gridContainer = document.getElementById('productGridContainer');
+      const scrollLoader  = document.getElementById('scrollLoader');
+
+      window.addEventListener('scroll', async () => {
+        if (!hasNextPage || isFetchingBatch) return;
+        if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 600)) {
+          isFetchingBatch = true;
+          scrollLoader.style.display = 'block';
+          currentPage++;
+          try {
+            const res = await fetch(`/?page=${currentPage}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (res.ok) {
+              const html = await res.text();
+              if (html.trim() === '') { hasNextPage = false; }
+              else { gridContainer.insertAdjacentHTML('beforeend', html); }
+            } else { hasNextPage = false; }
+          } catch (err) { console.error('Batch fetch error:', err); }
+          finally { isFetchingBatch = false; scrollLoader.style.display = 'none'; }
+        }
       });
-      
-      // Pagination functionality (demo)
-      const pageBtns = document.querySelectorAll('.page-item');
-      pageBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-          pageBtns.forEach(b => b.classList.remove('active'));
-          this.classList.add('active');
-        });
+
+      /* ── MODAL ── */
+      const modal      = document.getElementById('converterModal');
+      const openBtn    = document.getElementById('triggerOverlay');
+      const closeBtn   = document.getElementById('dismissOverlay');
+      const tagSelect  = document.getElementById('selectTrackingTag');
+      const customWrap = document.getElementById('customTagWrapper');
+
+      openBtn.onclick  = (e) => { e.preventDefault(); modal.style.display = 'flex'; resetModal(); };
+      closeBtn.onclick = () => modal.style.display = 'none';
+      modal.onclick    = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+      tagSelect.onchange = () => {
+        customWrap.style.display = tagSelect.value === 'CUSTOM_TAG_TRIGGER' ? 'block' : 'none';
+      };
+
+      function resetModal() {
+        document.getElementById('apiResponseWrapper').style.display = 'none';
+        document.getElementById('inputProductUrl').value = '';
+        const btn = document.getElementById('actionProcessBtn');
+        btn.classList.remove('loading');
+      }
+
+      /* ── AFFILIATE FORM SUBMIT ── */
+      const form       = document.getElementById('affiliateFormEngine');
+      const submitBtn  = document.getElementById('actionProcessBtn');
+      const resultBox  = document.getElementById('apiResponseWrapper');
+      const resultLink = document.getElementById('renderedShortcutTarget');
+      const copyBtn    = document.getElementById('copyLinkBtn');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.submitter) e.submitter.blur(); // prevent double-tap on mobile
+
+        const rawUrl = document.getElementById('inputProductUrl').value.trim();
+        let tag = tagSelect.value === 'CUSTOM_TAG_TRIGGER'
+          ? document.getElementById('customTagInput').value.trim()
+          : tagSelect.value;
+
+        if (!rawUrl) return;
+        if (!tag) { showToast('Please enter a custom tag', '⚠️'); return; }
+
+        // Build tagged URL locally (before API call, as fallback)
+        function buildTaggedUrl(url, affiliateTag) {
+          try {
+            const u = new URL(url);
+            u.searchParams.set('tag', affiliateTag);
+            // Clean up common Amazon tracking params that might conflict
+            ['ref', 'psc', 'smid'].forEach(p => u.searchParams.delete(p));
+            return u.toString();
+          } catch { return null; }
+        }
+
+        submitBtn.classList.add('loading');
+        resultBox.style.display = 'none';
+
+        try {
+          // POST to /api/shorten/ — matches urls.py: path("api/shorten/", views.create_short_url)
+          // Read CSRF token from cookie — no hidden input needed in DOM
+          const csrfToken = document.cookie.split(';')
+            .map(c => c.trim()).find(c => c.startsWith('csrftoken='))
+            ?.split('=')[1] || '';
+          const response = await fetch('/api/shorten/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ url: rawUrl, tag })
+          });
+
+          let shortUrl;
+          if (response.ok) {
+            const data = await response.json();
+            // Backend returns: { short_url, long_url, short_code }
+            // short_url is e.g. "https://amozn.in/abc1234"
+            shortUrl = data.short_url;
+          } else {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error || `Server error ${response.status}`);
+          }
+
+          if (!shortUrl) throw new Error('No short_url in response');
+
+          // Show result
+          resultLink.href = shortUrl;
+          resultLink.textContent = shortUrl;
+          resultBox.style.display = 'block';
+
+          // Auto-copy immediately
+          const copied = await copyText(shortUrl);
+          if (copied) {
+            showToast('Link generated & copied!', '✅');
+            copyBtn.classList.add('copied');
+            copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+            setTimeout(() => {
+              copyBtn.classList.remove('copied');
+              copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
+            }, 2500);
+          }
+
+        } catch (err) {
+          console.error('Affiliate link error:', err);
+          showToast(err.message || 'Could not generate link. Check the URL.', '❌');
+        } finally {
+          submitBtn.classList.remove('loading');
+        }
       });
+
+      /* ── MANUAL COPY BUTTON ── */
+      copyBtn.addEventListener('click', async () => {
+        const url = resultLink.textContent;
+        if (!url) return;
+        await copyText(url);
+        showToast('Copied to clipboard!', '✅');
+      });
+
     });
   </script>
 </body>

@@ -14,14 +14,16 @@ from .views import redirect_short_url
 urlpatterns = [
     path('', views.product_list, name='product_list'),
     path('product/<slug:slug>/', views.product_detail, name='product_detail'),
-    path('api/products/', ProductListCreateAPIView.as_view(), name='product-list-create'),
-    path('add-product/', add_product_page, name='add-product-page'),
-    path("api/shorten/", create_short_url),
-    path("<str:code>/", redirect_short),    
-    re_path(r'^(?P<shortcode>[A-Za-z0-9]+)/$', redirect_short_url, name='redirect'),
-    # path('wipe-db/', wipe_database)
-]
-
+    path('api/products/', views.ProductListCreateAPIView.as_view(), name='product-list-create'),
+    path('add-product/', views.add_product_page, name='add-product-page'),
+    
+    # Form endpoints
+    path("api/shorten/", views.create_short_url),
+    path("api/cookies/update/", views.update_amazon_cookies), # Cookie loader sync target
+    
+    # Fast Redirect Engine Rule 
+    path("<str:code>/", views.redirect_short, name='redirect'),    
+]    
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.BASE_DIR / 'products' / 'static')
