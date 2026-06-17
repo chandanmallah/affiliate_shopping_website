@@ -5,6 +5,17 @@ from django.db import models
 from django.utils.crypto import get_random_string
 from django.conf import settings
 
+class AppConfiguration(models.Model):
+    """
+    A persistent cloud-safe Key-Value store to hold dynamic configurations 
+    like volatile Amazon session cookies across ephemeral container restarts.
+    """
+    key = models.CharField(max_length=255, unique=True)
+    value = models.JSONField(default=dict)
+
+    def __str__(self):
+        return self.key
+
 class AmazonLink(models.Model):
     # Changed max_length from 500 to 2000
     product_url = models.URLField(max_length=2000) 

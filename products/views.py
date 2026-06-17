@@ -10,32 +10,32 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
 
-from .models import Product, ShortURL, AmazonLink
+# Note: Ensure you import AppConfiguration here
+from .models import Product, ShortURL, AmazonLink, AppConfiguration
 from .serializers import ProductSerializer
 
 import json
-import os
 import requests
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 # ─────────────────────────────────────────────────────────────
-# COOKIE FILE — stored next to views.py so it's easy to update
+# DATABASE COOKIE STORAGE — Cloud & Stateless Compliant
 # ─────────────────────────────────────────────────────────────
-COOKIES_FILE = os.path.join(os.path.dirname(__file__), 'amazon_cookies.json')
 
 def load_cookies():
-    """Load cookies from JSON file. Falls back to empty dict if file missing."""
+    """Load cookies from the database. Falls back to empty dict if missing."""
     try:
-        with open(COOKIES_FILE, 'r') as f:
-            return json.load(f)
+        config, _ = AppConfiguration.objects.get_or_create(key='amazon_cookies')
+        return config.value
     except Exception as e:
-        print(f"⚠️ Could not load cookies file: {e}")
+        print(f"⚠️ Could not load cookies from database: {e}")
         return {}
 
 def save_cookies(cookie_dict):
-    """Persist updated cookies back to JSON file."""
-    with open(COOKIES_FILE, 'w') as f:
-        json.dump(cookie_dict, f, indent=4)
+    """Persist updated cookies securely back into the database configuration record."""
+    config, _ = AppConfiguration.objects.get_or_create(key='amazon_cookies')
+    config.value = cookie_dict
+    config.save()
 
 AMAZON_HEADERS = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
@@ -87,12 +87,12 @@ def try_amazon_native_shorten(long_url):
 
     cookies = load_cookies()
     if not cookies:
-        print("❌ [AMZN.TO] FAILED — amazon_cookies.json is empty or missing")
-        print("   Fix: upload fresh cookies via the admin panel")
+        print("❌ [AMZN.TO] FAILED — Database configuration 'amazon_cookies' is empty or missing")
+        print("   Fix: upload fresh cookies via the admin panel UI")
         print("="*60)
         return None
 
-    print(f"   Cookies loaded: {len(cookies)} keys → {list(cookies.keys())[:4]}…")
+    print(f"   Cookies loaded from DB: {len(cookies)} keys → {list(cookies.keys())[:4]}…")
 
     api_url = "https://www.amazon.in/associates/sitestripe/getShortUrl"
     params  = {
@@ -167,7 +167,6 @@ def try_amazon_native_shorten(long_url):
 
         print(f"   JSON response: {data}")
 
-        # Amazon returns: {"isOk": true, "shortUrl": "https://amzn.to/XXXXX"}
         is_ok     = data.get("isOk", False)
         short_url = (
             data.get("shortUrl")
@@ -229,7 +228,6 @@ def shorten_with_amozn(long_url):
     Always succeeds as long as the DB is up.
     """
     obj, _ = ShortURL.objects.get_or_create(long_url=long_url)
-    # Warm the redirect cache
     cache.set(f"short_url:{obj.short_code}", obj.long_url, timeout=86400)
     print(f"✅ Fallback amozn.in shortener: {obj.short_url}")
     return obj.short_url
@@ -288,7 +286,6 @@ RESERVED_PATHS = {
 }
 
 def redirect_short(request, code):
-    # Block reserved paths and anything that looks like a CSRF token (long & has =)
     if code in RESERVED_PATHS or len(code) > 20 or '=' in code:
         raise Http404("Not found")
 
@@ -335,14 +332,6 @@ def create_short_url(request):
     """
     POST /api/shorten/
     Body: { "url": "<amazon url>", "tag": "<affiliate tag>" }
-
-    Response:
-    {
-        "long_url":    "https://www.amazon.in/dp/...?tag=kuldeep...",
-        "short_url":   "https://amzn.to/XXXXXXX"   ← or amozn.in fallback,
-        "short_code":  "XXXXXXX",
-        "method":      "amzn.to" | "amozn.in"
-    }
     """
     raw_url = request.data.get("url", "").strip()
     tag     = request.data.get("tag", "kuldeepsingh01-21").strip()
@@ -352,28 +341,24 @@ def create_short_url(request):
     if not tag:
         return Response({"error": "tag is required"}, status=400)
 
-    # Step 1: inject affiliate tag & clean URL
     long_url = clean_and_tag_url(raw_url, tag)
     print(f"📎 Tagged URL: {long_url}")
 
-    # Step 2: shorten (amzn.to → amozn.in)
     short_url, method = shorten_url(long_url)
     print(f"🔗 Final short URL [{method}]: {short_url}")
 
-    # Step 3: for amozn.in results, also store in DB (already done inside shorten_with_amozn)
-    # For amzn.to results we don't store in DB — it's Amazon's own short link
     short_code = short_url.rstrip('/').split('/')[-1]
 
     return Response({
         "long_url":   long_url,
         "short_url":  short_url,
         "short_code": short_code,
-        "method":     method,       # lets the frontend show "amzn.to" or "amozn.in"
+        "method":     method,
     })
 
 
 # ==========================================
-# 5. API — UPDATE COOKIES (from Telegram bot or manual)
+# 5. API — UPDATE COOKIES 
 # ==========================================
 
 @csrf_exempt
@@ -382,7 +367,7 @@ def update_amazon_cookies(request):
     """
     POST /api/cookies/update/
     Body: { "session-id": "...", "at-acbin": "...", ... }
-    Merges into amazon_cookies.json and saves to disk.
+    Merges records directly into the operational database.
     """
     new_cookies = request.data
     if not new_cookies or not isinstance(new_cookies, dict):
@@ -390,7 +375,6 @@ def update_amazon_cookies(request):
 
     current = load_cookies()
     for key, val in new_cookies.items():
-        # Keep quoted values intact for sid / x-acbin
         if key in ["sid", "x-acbin"] and val and not str(val).startswith('"'):
             current[key] = f'"{val}"'
         else:
@@ -399,7 +383,7 @@ def update_amazon_cookies(request):
     save_cookies(current)
 
     return Response({
-        "message": "Cookies updated and saved to amazon_cookies.json",
+        "message": "Cookies successfully synchronized and saved directly to database space.",
         "total_keys": len(current),
         "updated_keys": list(new_cookies.keys())
     })
