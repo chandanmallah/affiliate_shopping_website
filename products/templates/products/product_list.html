@@ -364,6 +364,74 @@
       .footer-brand { grid-column: 1 / -1; }
       nav a:not(.nav-cta) { display: none; }
     }
+
+    /* ── COOKIE UPDATE MODAL ── */
+    .cookie-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(15,23,42,0.6);
+      backdrop-filter: blur(6px);
+      z-index: 1100;
+      justify-content: center; align-items: center;
+      padding: 1rem;
+    }
+    .cookie-modal-box {
+      background: #fff;
+      border-radius: 20px;
+      border: 1px solid var(--slate-200);
+      max-width: 500px; width: 100%;
+      padding: 2rem;
+      box-shadow: 0 24px 64px rgba(15,23,42,0.2);
+      position: relative;
+    }
+    .cookie-step { display: none; }
+    .cookie-step.active { display: block; }
+    .cookie-modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .cookie-modal-sub { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+    .cookie-pw-input {
+      width: 100%; padding: 0.75rem 1rem;
+      background: var(--bg-page); border: 1px solid var(--slate-300);
+      border-radius: 10px; font-size: 1rem; color: var(--text-primary);
+      outline: none; transition: var(--transition); letter-spacing: 0.1em;
+    }
+    .cookie-pw-input:focus { border-color: var(--blue-500); box-shadow: 0 0 0 3px var(--blue-100); }
+    .cookie-pw-error { font-size: 0.78rem; color: #dc2626; margin-top: 0.4rem; display: none; }
+    .cookie-json-area {
+      width: 100%; min-height: 220px; max-height: 340px;
+      padding: 0.85rem 1rem;
+      background: #0f172a; color: #a5f3fc;
+      border: 1px solid #1e293b;
+      border-radius: 10px; font-family: monospace; font-size: 0.78rem;
+      line-height: 1.6; resize: vertical; outline: none;
+      transition: border-color 0.15s;
+    }
+    .cookie-json-area:focus { border-color: var(--blue-500); }
+    .cookie-json-error { font-size: 0.78rem; color: #dc2626; margin-top: 0.4rem; display: none; }
+    .cookie-action-row { display: flex; gap: 0.75rem; margin-top: 1.25rem; }
+    .cookie-btn-primary {
+      flex: 1; padding: 0.75rem;
+      background: var(--blue-600); color: #fff;
+      border: none; border-radius: 10px;
+      font-weight: 700; font-size: 0.875rem;
+      cursor: pointer; transition: var(--transition);
+    }
+    .cookie-btn-primary:hover { background: #1d4ed8; }
+    .cookie-btn-secondary {
+      padding: 0.75rem 1.1rem;
+      background: var(--bg-page); color: var(--text-secondary);
+      border: 1px solid var(--slate-300); border-radius: 10px;
+      font-weight: 600; font-size: 0.875rem;
+      cursor: pointer; transition: var(--transition);
+    }
+    .cookie-btn-secondary:hover { background: var(--slate-200); }
+    .cookie-status-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; padding: 0.25rem 0.6rem;
+      border-radius: 6px; margin-bottom: 1rem;
+    }
+    .cookie-status-badge.ok { background: #dcfce7; color: #16a34a; }
+    .cookie-status-badge.expired { background: #fef2f2; color: #dc2626; }
+    .cookie-hint { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.5rem; }
   </style>
 </head>
 <body>
@@ -378,6 +446,9 @@
       <a href="#" id="triggerOverlay" class="nav-cta">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
         Create Affiliate Link
+      </a>
+      <a href="#" id="triggerCookieModal" title="Admin Settings" style="padding:0.45rem 0.55rem; color:var(--text-muted); opacity:0.4; line-height:1;" aria-label="Admin">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
       </a>
     </nav>
   </header>
@@ -416,9 +487,31 @@
         <div class="form-group">
           <label>Tracking Tag</label>
           <select id="selectTrackingTag">
-            <option value="kuldeepsingh01-21">kuldeepsingh01-21</option>
-            <option value="brandinteger01-21">brandinteger01-21</option>
+            <!-- <option value="kuldeepsingh01-21">kuldeepsingh01-21</option>
+            <option value="brandinteger01-21">brandinteger01-21</option> -->
             <option value="CUSTOM_TAG_TRIGGER">Enter manually…</option>
+            <option value="ashfiyarajguru-21">ASH</option>
+            <option value="banalibanerjee-21">DH AFFILIATE BOT</option>
+            <option value="alena01-21">BrandCrafter</option>
+            <option value="indiantester01-21">Madhukar Affiliate Bot</option>
+            <option value="brandinteger01-21">Brandinteger</option>
+            <option value="lootlobhai-21">Rohin Affiliate Bot</option>
+            <option value="0c0-21">Jaincy Affiliate Bot</option>
+            <option value="brandinteger01-21">Karishma Affiliate Bot</option>
+            <option value="chandanmallah-21">Priyansh Affiliate Bot</option>
+            <option value="pragyajain00-21">Siddhant Affiliate Bot</option>
+            <option value="fbh049-21">Dabang affiliate bot</option>
+            <option value="kuldeepsingh01-21">KULDEEP AFFILIATE BOT</option>
+            <option value="priyanshgupta02-21">Renuka Affiliate Bot</option>
+            <option value="saurabhrathore-21">Naman Affiliate Bot</option>
+            <option value="dabangg00-21">Arif Affiliate Bot</option>
+            <option value="cmar01-21">Harsh Affiliate Bot</option>
+            <option value="282807-21">Prashant Affiliate Bot</option>
+            <option value="earnkaro0a7-21">Karmveer Affiliate Bot</option>
+            <!-- <option value="harharmahadev0c-21">Pooja Main Affiliate Bot</option> -->
+            <option value="keyword04-21">Keyword Link</option>
+            <option value="saurabhrathore00-21">Devil Affiliate Bot</option> 
+            <!-- <option value="chandanmallah-21">Kanika affiliate bot</option>          -->
           </select>
           <div class="hidden-input-wrapper" id="customTagWrapper">
             <label>Custom Tag</label>
@@ -492,6 +585,47 @@
       </div>
     </div>
   </footer>
+
+
+  <!-- COOKIE UPDATE MODAL — Admin only, password protected -->
+  <div class="cookie-modal-overlay" id="cookieModal">
+    <div class="cookie-modal-box">
+      <button class="close-modal" id="closeCookieModal" style="position:absolute;top:1rem;right:1.25rem;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</button>
+
+      <!-- STEP 1: Password -->
+      <div class="cookie-step active" id="cookieStepPw">
+        <h3 class="cookie-modal-title">🔐 Admin Access</h3>
+        <p class="cookie-modal-sub">Enter the admin password to manage cookies</p>
+        <input type="password" class="cookie-pw-input" id="cookiePwInput" placeholder="Password" autocomplete="off" />
+        <div class="cookie-pw-error" id="cookiePwError">Incorrect password. Try again.</div>
+        <div class="cookie-action-row">
+          <button class="cookie-btn-primary" id="cookiePwSubmit">Unlock →</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Cookie Editor -->
+      <div class="cookie-step" id="cookieStepEdit">
+        <h3 class="cookie-modal-title">🍪 Update Amazon Cookies</h3>
+        <p class="cookie-modal-sub">Paste the fresh cookie JSON. The server will merge and save it.</p>
+        <div id="cookieStatusBadge"></div>
+        <textarea class="cookie-json-area" id="cookieJsonArea" spellcheck="false" placeholder='{
+  "session-id": "...",
+  "at-acbin": "...",
+  "session-token": "..."
+}'></textarea>
+        <div class="cookie-json-error" id="cookieJsonError"></div>
+        <p class="cookie-hint">💡 Paste only the keys that have changed — unchanged keys will be preserved.</p>
+        <div class="cookie-action-row">
+          <button class="cookie-btn-secondary" id="cookieCancelEdit">Cancel</button>
+          <button class="cookie-btn-primary" id="cookieSubmitBtn">
+            <span class="cookie-btn-text">Save Cookies</span>
+            <span class="cookie-btn-spinner" style="display:none">Saving…</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
   <!-- Toast notification -->
   <div class="toast" id="globalToast">
@@ -670,6 +804,115 @@
         await copyText(url);
         showToast('Copied to clipboard!', '✅');
       });
+
+
+      /* ── COOKIE MODAL ── */
+      const ADMIN_PW = 'Chandan1*';
+      const cookieModal    = document.getElementById('cookieModal');
+      const cookieTrigger  = document.getElementById('triggerCookieModal');
+      const closeCookieBtn = document.getElementById('closeCookieModal');
+      const pwInput        = document.getElementById('cookiePwInput');
+      const pwError        = document.getElementById('cookiePwError');
+      const pwSubmit       = document.getElementById('cookiePwSubmit');
+      const stepPw         = document.getElementById('cookieStepPw');
+      const stepEdit       = document.getElementById('cookieStepEdit');
+      const jsonArea       = document.getElementById('cookieJsonArea');
+      const jsonError      = document.getElementById('cookieJsonError');
+      const cookieSubmit   = document.getElementById('cookieSubmitBtn');
+      const statusBadge    = document.getElementById('cookieStatusBadge');
+
+      function openCookieModal() {
+        cookieModal.style.display = 'flex';
+        stepPw.classList.add('active');
+        stepEdit.classList.remove('active');
+        pwInput.value = '';
+        pwError.style.display = 'none';
+        jsonArea.value = '';
+        jsonError.style.display = 'none';
+        statusBadge.innerHTML = '';
+        setTimeout(() => pwInput.focus(), 80);
+      }
+      function closeCookieModal() {
+        cookieModal.style.display = 'none';
+      }
+
+      cookieTrigger.addEventListener('click', (e) => { e.preventDefault(); openCookieModal(); });
+      closeCookieBtn.addEventListener('click', closeCookieModal);
+      cookieModal.addEventListener('click', (e) => { if (e.target === cookieModal) closeCookieModal(); });
+      document.getElementById('cookieCancelEdit').addEventListener('click', closeCookieModal);
+
+      // Handle Enter key on password field
+      pwInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') pwSubmit.click(); });
+
+      pwSubmit.addEventListener('click', () => {
+        if (pwInput.value === ADMIN_PW) {
+          pwError.style.display = 'none';
+          stepPw.classList.remove('active');
+          stepEdit.classList.add('active');
+          // Show current cookie status
+          statusBadge.innerHTML = '<span class="cookie-status-badge ok">✓ Authenticated — ready to update</span>';
+          setTimeout(() => jsonArea.focus(), 80);
+        } else {
+          pwError.style.display = 'block';
+          pwInput.value = '';
+          pwInput.focus();
+        }
+      });
+
+      cookieSubmit.addEventListener('click', async () => {
+        const raw = jsonArea.value.trim();
+        if (!raw) { showJsonError('Please paste cookie JSON first.'); return; }
+
+        let parsed;
+        try {
+          parsed = JSON.parse(raw);
+        } catch (err) {
+          showJsonError('Invalid JSON: ' + err.message); return;
+        }
+        if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+          showJsonError('Must be a JSON object { "key": "value", ... }'); return;
+        }
+
+        jsonError.style.display = 'none';
+        cookieSubmit.querySelector('.cookie-btn-text').style.display = 'none';
+        cookieSubmit.querySelector('.cookie-btn-spinner').style.display = 'inline';
+        cookieSubmit.disabled = true;
+
+        try {
+          const csrfToken = document.cookie.split(';')
+            .map(c => c.trim()).find(c => c.startsWith('csrftoken='))
+            ?.split('=')[1] || '';
+
+          const res = await fetch('/api/cookies/update/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify(parsed)
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            showToast(`Cookies updated! ${data.total_keys} keys saved.`, '🍪');
+            closeCookieModal();
+          } else {
+            const err = await res.json().catch(() => ({}));
+            showJsonError('Server error: ' + (err.error || res.status));
+          }
+        } catch (err) {
+          showJsonError('Network error: ' + err.message);
+        } finally {
+          cookieSubmit.querySelector('.cookie-btn-text').style.display = 'inline';
+          cookieSubmit.querySelector('.cookie-btn-spinner').style.display = 'none';
+          cookieSubmit.disabled = false;
+        }
+      });
+
+      function showJsonError(msg) {
+        jsonError.textContent = msg;
+        jsonError.style.display = 'block';
+      }
 
     });
   </script>

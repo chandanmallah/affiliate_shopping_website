@@ -1,6 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.cache import cache
 from django.conf import settings
+from django.core.paginator import Paginator
+from django.views.decorators.csrf import csrf_exempt
+from django.http import Http404
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -10,13 +13,245 @@ from rest_framework.decorators import api_view
 from .models import Product, ShortURL, AmazonLink
 from .serializers import ProductSerializer
 
-import re
+import json
+import os
+import requests
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-from django.shortcuts import get_object_or_404
-from django.core.cache import cache
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from .models import ShortURL
+
+# ─────────────────────────────────────────────────────────────
+# COOKIE FILE — stored next to views.py so it's easy to update
+# ─────────────────────────────────────────────────────────────
+COOKIES_FILE = os.path.join(os.path.dirname(__file__), 'amazon_cookies.json')
+
+def load_cookies():
+    """Load cookies from JSON file. Falls back to empty dict if file missing."""
+    try:
+        with open(COOKIES_FILE, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"⚠️ Could not load cookies file: {e}")
+        return {}
+
+def save_cookies(cookie_dict):
+    """Persist updated cookies back to JSON file."""
+    with open(COOKIES_FILE, 'w') as f:
+        json.dump(cookie_dict, f, indent=4)
+
+AMAZON_HEADERS = {
+    "Accept": "application/json, text/javascript, */*; q=0.01",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/134.0.0.0 Safari/537.36"
+    ),
+    "X-Requested-With": "XMLHttpRequest",
+    "Referer": "https://www.amazon.in/",
+}
+
+# ─────────────────────────────────────────────────────────────
+# URL HELPERS
+# ─────────────────────────────────────────────────────────────
+
+def normalize_url(url):
+    url = url.strip()
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+    return url
+
+def clean_and_tag_url(url, tag):
+    """Inject affiliate tag, strip junk tracking params."""
+    parsed = urlparse(normalize_url(url))
+    params = parse_qs(parsed.query, keep_blank_values=True)
+    for junk in ['s', 'ref', 'psc', 'smid', 'th', 'ref_']:
+        params.pop(junk, None)
+    params['tag'] = [tag]
+    return urlunparse((
+        parsed.scheme, parsed.netloc, parsed.path,
+        parsed.params, urlencode(params, doseq=True), ''
+    ))
+
+
+# ─────────────────────────────────────────────────────────────
+# SHORTENING: AMZN.TO (Amazon SiteStripe) — PRIMARY
+# ─────────────────────────────────────────────────────────────
+
+def try_amazon_native_shorten(long_url):
+    """
+    Call Amazon SiteStripe getShortUrl API → amzn.to link.
+    Prints a detailed failure reason to terminal if anything goes wrong.
+    Returns short URL string on success, None on any failure.
+    """
+    print("\n" + "="*60)
+    print("🔗 [AMZN.TO] Attempting Amazon native shortener")
+    print(f"   URL: {long_url}")
+
+    cookies = load_cookies()
+    if not cookies:
+        print("❌ [AMZN.TO] FAILED — amazon_cookies.json is empty or missing")
+        print("   Fix: upload fresh cookies via the admin panel")
+        print("="*60)
+        return None
+
+    print(f"   Cookies loaded: {len(cookies)} keys → {list(cookies.keys())[:4]}…")
+
+    api_url = "https://www.amazon.in/associates/sitestripe/getShortUrl"
+    params  = {
+        "longUrl":       normalize_url(long_url),
+        "marketplaceId": "44571",   # amazon.in marketplace
+    }
+
+    print(f"   Calling: {api_url}")
+    print(f"   Params:  {params}")
+
+    try:
+        resp = requests.get(
+            api_url,
+            params=params,
+            headers=AMAZON_HEADERS,
+            cookies=cookies,
+            timeout=10,
+            allow_redirects=True,
+        )
+
+        print(f"   HTTP status : {resp.status_code}")
+        print(f"   Final URL   : {resp.url}")
+        print(f"   Content-Type: {resp.headers.get('Content-Type', 'unknown')}")
+
+        # ── Login redirect ──────────────────────────────────────
+        if '/ap/signin' in resp.url:
+            print("❌ [AMZN.TO] FAILED — Redirected to Amazon login page")
+            print("   Reason: Cookies are EXPIRED or belong to wrong account")
+            print("   Fix: Log into amazon.in Associates, copy fresh cookies, update via admin panel")
+            print("="*60)
+            return None
+
+        if resp.status_code == 401:
+            print("❌ [AMZN.TO] FAILED — HTTP 401 Unauthorized")
+            print("   Reason: Amazon rejected the cookies (expired or invalid)")
+            print("   Fix: Refresh cookies from amazon.in and update via admin panel")
+            print("="*60)
+            return None
+
+        if resp.status_code == 403:
+            print("❌ [AMZN.TO] FAILED — HTTP 403 Forbidden")
+            print("   Reason: Account may not have Associates access, or IP is blocked")
+            print("="*60)
+            return None
+
+        # ── HTML response (should be JSON) ──────────────────────
+        ct = resp.headers.get('Content-Type', '')
+        if 'text/html' in ct:
+            snippet = resp.text[:400].replace('\n', ' ').strip()
+            print("❌ [AMZN.TO] FAILED — Got HTML instead of JSON")
+            print("   Reason: Almost certainly expired/invalid cookies (Amazon served login/error page)")
+            print(f"   Response snippet: {snippet}")
+            print("   Fix: Refresh cookies from amazon.in Associates SiteStripe toolbar")
+            print("="*60)
+            return None
+
+        # ── Non-200 ─────────────────────────────────────────────
+        if resp.status_code != 200:
+            print(f"❌ [AMZN.TO] FAILED — Unexpected HTTP {resp.status_code}")
+            print(f"   Response body: {resp.text[:300]}")
+            print("="*60)
+            return None
+
+        # ── Parse JSON ──────────────────────────────────────────
+        try:
+            data = resp.json()
+        except Exception as je:
+            print(f"❌ [AMZN.TO] FAILED — Response is not valid JSON: {je}")
+            print(f"   Raw response (first 400 chars): {resp.text[:400]}")
+            print("="*60)
+            return None
+
+        print(f"   JSON response: {data}")
+
+        # Amazon returns: {"isOk": true, "shortUrl": "https://amzn.to/XXXXX"}
+        is_ok     = data.get("isOk", False)
+        short_url = (
+            data.get("shortUrl")
+            or data.get("short_url")
+            or data.get("ShortUrl")
+            or data.get("url")
+        )
+
+        if not is_ok:
+            error_msg = data.get("error") or data.get("message") or data.get("errorMessage") or "unknown"
+            print(f"❌ [AMZN.TO] FAILED — Amazon API returned isOk=false")
+            print(f"   Error from Amazon: {error_msg}")
+            print(f"   Full response: {data}")
+            print("   Common reasons:")
+            print("   • URL is not a valid amazon.in product URL")
+            print("   • Cookies expired — refresh from Associates SiteStripe")
+            print("   • Account not enrolled in Associates programme")
+            print("="*60)
+            return None
+
+        if not short_url:
+            print(f"❌ [AMZN.TO] FAILED — isOk=true but no shortUrl field in response")
+            print(f"   Full response keys: {list(data.keys())}")
+            print(f"   Full response: {data}")
+            print("="*60)
+            return None
+
+        # ── Success ─────────────────────────────────────────────
+        short_url = short_url.replace("www.", "").strip()
+        print(f"✅ [AMZN.TO] SUCCESS → {short_url}")
+        print("="*60)
+        return short_url
+
+    except requests.exceptions.Timeout:
+        print("❌ [AMZN.TO] FAILED — Request timed out after 10s")
+        print("   Reason: Amazon API did not respond in time")
+        print("="*60)
+        return None
+
+    except requests.exceptions.ConnectionError as ce:
+        print(f"❌ [AMZN.TO] FAILED — Connection error: {ce}")
+        print("   Reason: Could not reach amazon.in (network/DNS issue on server)")
+        print("="*60)
+        return None
+
+    except Exception as e:
+        print(f"❌ [AMZN.TO] FAILED — Unexpected exception: {type(e).__name__}: {e}")
+        print("="*60)
+        return None
+
+
+# ─────────────────────────────────────────────────────────────
+# SHORTENING: AMOZN.IN (our DB) — FALLBACK
+# ─────────────────────────────────────────────────────────────
+
+def shorten_with_amozn(long_url):
+    """
+    Store in our ShortURL model → returns amozn.in/<code> URL.
+    Always succeeds as long as the DB is up.
+    """
+    obj, _ = ShortURL.objects.get_or_create(long_url=long_url)
+    # Warm the redirect cache
+    cache.set(f"short_url:{obj.short_code}", obj.long_url, timeout=86400)
+    print(f"✅ Fallback amozn.in shortener: {obj.short_url}")
+    return obj.short_url
+
+
+# ─────────────────────────────────────────────────────────────
+# COMBINED SHORTENER — tries amzn.to first, amozn.in second
+# ─────────────────────────────────────────────────────────────
+
+def shorten_url(long_url):
+    """
+    1. Try Amazon SiteStripe → amzn.to/XXXXXXX
+    2. Fall back to our own DB → amozn.in/XXXXXXX
+    Returns (short_url, method_used)
+    """
+    amzn_short = try_amazon_native_shorten(long_url)
+    if amzn_short:
+        return amzn_short, "amzn.to"
+
+    fallback = shorten_with_amozn(long_url)
+    return fallback, "amozn.in"
+
 
 # ==========================================
 # 1. HTML PAGE VIEWS
@@ -27,9 +262,15 @@ def add_product_page(request):
 
 
 def product_list(request):
-    # select_related('link') keeps this fast by joining tables in 1 query
-    products = Product.objects.select_related('link').all().order_by('-created_at')
-    return render(request, 'products/product_list.html', {'products': products})   
+    products_list = Product.objects.select_related('link').all().order_by('-created_at')
+    paginator = Paginator(products_list, 8)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(request, 'products/product_cards_partial.html', {'page_obj': page_obj})
+
+    return render(request, 'products/product_list.html', {'page_obj': page_obj})
 
 
 def product_detail(request, slug):
@@ -38,31 +279,36 @@ def product_detail(request, slug):
 
 
 # ==========================================
-# 2. ULTRA-FAST REDIRECTION (MILLISECOND SPEED)
+# 2. REDIRECT ENGINE
 # ==========================================
 
+RESERVED_PATHS = {
+    'api', 'admin', 'product', 'add-product',
+    'static', 'media', 'favicon.ico', 'robots.txt',
+}
+
 def redirect_short(request, code):
-    # 1. Look up inside the Render container's RAM first (~0.5ms)
+    # Block reserved paths and anything that looks like a CSRF token (long & has =)
+    if code in RESERVED_PATHS or len(code) > 20 or '=' in code:
+        raise Http404("Not found")
+
     cache_key = f"short_url:{code}"
     long_url = cache.get(cache_key)
-    
+
     if not long_url:
-        # 2. Fallback to indexed DB if missing from RAM
         entry = get_object_or_404(ShortURL, short_code=code)
         long_url = entry.long_url
-        # 3. Cache it so the next hits skip the DB entirely
-        cache.set(cache_key, long_url, timeout=86400) # 24 Hours
-        
+        cache.set(cache_key, long_url, timeout=86400)
+
     return redirect(long_url)
 
 
 def redirect_short_url(request, shortcode):
-    """Fallback if your urls.py routes to 'shortcode' instead of 'code'"""
     return redirect_short(request, code=shortcode)
 
 
 # ==========================================
-# 3. API ENDPOINTS
+# 3. API — PRODUCTS
 # ==========================================
 
 class ProductListCreateAPIView(APIView):
@@ -79,107 +325,81 @@ class ProductListCreateAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# ==========================================
+# 4. API — SHORTEN  (amzn.to first, amozn.in fallback)
+# ==========================================
 
-# Global application memory structures matching your automation configuration state
-LIVE_AMAZON_COOKIES = {
-    "x-amz-captcha-1": "1758191185505360",
-    "x-amz-captcha-2": "pJO5Z27LFTU+5QexwL7aUw==",
-    "session-id": "523-9523293-8644603",
-    "ubid-acbin": "525-8478998-7598650",
-    "sid": '"4bwFaXLuq5047LuO9lh7CA==|3kCicvVZtCrI+0BU/ROrZ/cuMQsgoh1DKcflYCqK8bE="',
-    "i18n-prefs": "INR",
-    "lc-acbin": "en_IN",
-    "rx": "AQB7Pi+Zry5rPFO5nTFwbrv/wag=@ARKvK2o=",
-    "sso-state-acbin": "Xdsso|ZQF_IYWjEloHIgeJhLgFv9jO1UWUULnKtu-7kw2C432ckc01wHIBalHQsxv7pBErSsWr8nqqVCGCp4ub97H-Tm3JaP0arpozoFX99eYlfGFKm3SE",
-    "at-acbin": "Atza|gQDp1ALfAwEBArlap7R3LXeCkZeJzCDLg4q147XmcAL0veqlZdRUYWKjsZWBNSW3mhdL-6GV24FUmNFs0X_Ks6nZQF2YlHcqKVI9w6VqL2zFsTuxnT1HOd-6w5N33rAmEp79ChyFxXpVnDfAlj8rQBxl3XQKLeJrRltUWSfM1eX7nQs6b_32HBLfH9MczcFz2KHYsDbRpShqNb20aK_ywsftJJLbxkQ1T3fr7Q2FM3wEO-vgrYISVfG2ri_TjVWEPWv3qhvGv5dfjK8Li5AAaMCHjxh-HVxlmcTv7nFaIy6U2O3qXiCtHtxXmiSNOFQUPQj2yQMutIfnDEaoFOg0qBWLWQSNxrYefwwplAhAH_5PrBjSNSTjGpM8ZTLDmdErVDecgNJIChnNTawXJrck3scwX9sL9PE-jZByWNm7xkz4jAmmULZzpd-MgQ6W-g",
-    "sess-at-acbin": "7futdC8neRRCjq7wg/JbQjwcfAEgHLXfI1BQkl86G8Y=",
-    "sst-acbin": "Sst1|PQI1HEN1IlHMvuyYh8ADXQnGDZPa25FNqTiMGVwTwRidknBsNQ0QWQw4zV5ETB9gtruSLIwXxCSb2iYDPhuAy1Y9SyEllEkrlcbMId-cC091A_mExHU0a5uADOF_geR8vSbxjSaAiANntKlIq2WjYSmYHI_rR3fvkglsep63jnW9NrrgwcZj9wkjoGI459a98_9xyrcNEYnI30xTXDtAI4jbbqfrUM-rvfD_CHP9kZUsgNOp3arEMYDg-zcTSlJGzZZ91_qe53-RVtfVs6D2asu7x3zovub83DknU4nZxQUxlJzKGRFB4jzEta3qlz0yZIZMMuzYUvuwEEF6KcQk4bd8f5atV4dmEIv6g5tyR9N6xdmD_ijjeYse26hUiOwb2Nyo",
-    "x-acbin": '"6T@kqIylHZ73ulmATBtN5Sw2Arni?3GdZEDZ3UJzfeiwK3vf6qWHhQtxOnmc50sJ"',
-    "session-token": "cYHY8im7emXDtoQXR39KJ65pMh98jo6g0SJqTfVQImOcpnm4RaOOnuPe46Q3mJrKqMOe814smG5560F1S8Mbd+GhrtBAFrvNOf3dUl+zqcpa8xzjdWNQXFF/Q7aAEBacM30pVKFxJb7v+Dp+BSgzpYRMbVhVljMGnNPn6dFXb6uAm7hxN/e70T+BJvZjvkG1MEWotuXM7T5FAQHJ3XJdVwjCQT/97bGJlfelZTMTBA2DbXuynYDxkkwSBFDLVP5g",
-    "session-id-time": "2082787201l",
-    "ak_bmsc": "1949F7241193F3014A3CDCD62C1ED120~000000000000000000000000000000~YAAQvfXSF7QO1cSeAQAAZ9hGygCYNZpgZbOoTeVlUJNSiBbljnAYR16FKBwbNRJ1kEY68IXHk5JSlkPxD4BEz4zqkik6d1juv+1gr7zevmorOQ6EXoiV/flD64xxiA4sfNNumh5/mmIrSSv0Fe2Yq+FEQGPZdA5mNmjjhjqY/p608tGDaWZV5n+xI3sZPNuIQYp4uf9tp2eQt12VJcteQ5uU7plCAWcEH8cYYlB26HBPBvk5WfH/RekuYwAiiONeVTxCy52xBRy3HpH5yQmVBDeg0tZohQQWX6gycyXR9L0tsY9Cop38BDmXojwVhGNlEv7JGzhHtpt3vSwDohb7bwOpyDg26SCATx9XsoCVbQIpfXzJfTG4HarRCIofmD8CfSueJdwzeHaG3yZhUdGMb0eDDVnyFyHMSog4VDrwj2nsjTUSlHEWDizIYiflq3F858QJb4wZb1hASHGhSRVdA7HP40wVqgTQU9ALc0GAeDd4x",
-    "bm_sv": "C325C8BC96CF5206474CF3AD0CA7160D~YAAQvfXSFxJ/1cSeAQAA4TZHygAX/kCbVlji+Tam9wITSIk+eHePnQimfvtyqPa2pDuiICFV3znSDhJ2NFbQbKoMcwrCnJ/uCeNjyxbEm766snO5HXyl2PGfmUgsS/ohOVk87u0kLoxLD9mK9Dvh/GB/z81Ap/8qYWPe9ysasyCRZPIqwn7AjyqGdlU+NTw7RpnK9C2j148M7Zjxs3EVuTvx5mbZuad5+9nU8YKbdl6lS1iwCnU9+2fv+hsomtit~1",
-    "rxc": "AAnWe6HTxOPUNmSZT+8"
-}
-
-def clean_and_tag_url(url, tag):
-    """Helper mimicking bot.py to structure cleanly into target payload format"""
-    parsed = urlparse(url)
-    query_params = parse_qs(parsed.query, keep_blank_values=True)
-    # Remove junk keys if they exist
-    if 's' in query_params:
-        query_params.pop('s')
-    query_params['tag'] = [tag]
-    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, urlencode(query_params, doseq=True), ''))
-
-# ============================================================================
-# NEW API: CREATE SHORTENED LINK WITH CUSTOM LOGIC
-# ============================================================================
+@csrf_exempt
 @api_view(["POST"])
 def create_short_url(request):
-    raw_url = request.data.get("url")
-    tag = request.data.get("tag", "alena01-21")  # Fallback to defaults
+    """
+    POST /api/shorten/
+    Body: { "url": "<amazon url>", "tag": "<affiliate tag>" }
+
+    Response:
+    {
+        "long_url":    "https://www.amazon.in/dp/...?tag=kuldeep...",
+        "short_url":   "https://amzn.to/XXXXXXX"   ← or amozn.in fallback,
+        "short_code":  "XXXXXXX",
+        "method":      "amzn.to" | "amozn.in"
+    }
+    """
+    raw_url = request.data.get("url", "").strip()
+    tag     = request.data.get("tag", "kuldeepsingh01-21").strip()
 
     if not raw_url:
-        return Response({"error": "URL parameter missing"}, status=400)
+        return Response({"error": "url is required"}, status=400)
+    if not tag:
+        return Response({"error": "tag is required"}, status=400)
 
-    # Clean raw Amazon query tracking configurations
+    # Step 1: inject affiliate tag & clean URL
     long_url = clean_and_tag_url(raw_url, tag)
+    print(f"📎 Tagged URL: {long_url}")
 
-    # Use existing memory tracking instance structure
-    obj, created = ShortURL.objects.get_or_create(long_url=long_url)
+    # Step 2: shorten (amzn.to → amozn.in)
+    short_url, method = shorten_url(long_url)
+    print(f"🔗 Final short URL [{method}]: {short_url}")
 
-    # Millisecond lookup logic implementation using local cache mapping
-    cache_key = f"short_url:{obj.short_code}"
-    cache.set(cache_key, obj.long_url, timeout=86400)
+    # Step 3: for amozn.in results, also store in DB (already done inside shorten_with_amozn)
+    # For amzn.to results we don't store in DB — it's Amazon's own short link
+    short_code = short_url.rstrip('/').split('/')[-1]
 
     return Response({
-        "long_url": obj.long_url,
-        "short_url": obj.short_url,
-        "short_code": obj.short_code
+        "long_url":   long_url,
+        "short_url":  short_url,
+        "short_code": short_code,
+        "method":     method,       # lets the frontend show "amzn.to" or "amozn.in"
     })
 
-# ============================================================================
-# NEW API: UPDATE SYSTEM SCRAPING COOKIES OVER NETWORKS ON THE FLY
-# ============================================================================
+
+# ==========================================
+# 5. API — UPDATE COOKIES (from Telegram bot or manual)
+# ==========================================
+
+@csrf_exempt
 @api_view(["POST"])
 def update_amazon_cookies(request):
-    global LIVE_AMAZON_COOKIES
-    
-    # Accept structural parameters matching your given template
+    """
+    POST /api/cookies/update/
+    Body: { "session-id": "...", "at-acbin": "...", ... }
+    Merges into amazon_cookies.json and saves to disk.
+    """
     new_cookies = request.data
     if not new_cookies or not isinstance(new_cookies, dict):
-        return Response({"error": "Invalid cookie map structure supplied"}, status=400)
+        return Response({"error": "Send a JSON dict of cookie key→value pairs"}, status=400)
 
-    # Map keys directly to global active system parameters
+    current = load_cookies()
     for key, val in new_cookies.items():
-        # Ensure proper wrapping formatting constraints are respected
-        if key in ["sid", "x-acbin"] and val and not val.startswith('"'):
-            LIVE_AMAZON_COOKIES[key] = f'"{val}"'
+        # Keep quoted values intact for sid / x-acbin
+        if key in ["sid", "x-acbin"] and val and not str(val).startswith('"'):
+            current[key] = f'"{val}"'
         else:
-            LIVE_AMAZON_COOKIES[key] = val
+            current[key] = val
+
+    save_cookies(current)
 
     return Response({
-        "message": "System scraping configuration cookies updated successfully",
-        "current_keys_cached": list(LIVE_AMAZON_COOKIES.keys())
-    }, status=200)
-
-
-from django.core.paginator import Paginator
-from django.shortcuts import render
-from .models import Product
-
-def product_list(request):
-    # 1. Fetch products efficiently using select_related
-    products_list = Product.objects.select_related('link').all().order_by('-created_at')
-    
-    # 2. Slice items into batches of 8 for optimal mobile rendering speed
-    paginator = Paginator(products_list, 8)
-    page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
-    
-    # 3. Check if JavaScript is requesting a background batch append
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render(request, 'products/product_cards_partial.html', {'page_obj': page_obj})
-        
-    return render(request, 'products/product_list.html', {'page_obj': page_obj})
+        "message": "Cookies updated and saved to amazon_cookies.json",
+        "total_keys": len(current),
+        "updated_keys": list(new_cookies.keys())
+    })
