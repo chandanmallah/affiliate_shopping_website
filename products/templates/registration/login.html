@@ -1,0 +1,68 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Log in - DEALHUNT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap">
+  <link rel="stylesheet" href="{% static 'products/css/styles.css' %}">
+</head>
+<body>
+  <div class="auth-shell">
+
+    <!-- Brand panel -->
+    <aside class="auth-aside hero-bg">
+      <a href="/" class="auth-brand">DEALS<span>FORFREE</span></a>
+      <div class="auth-aside-body">
+        <h2 class="font-display">Welcome back.</h2>
+        <p>Sign in to save deals, follow price drops, and pick up where you left off.</p>
+      </div>
+      <ul class="auth-perks">
+        <li>Track price history on any listing</li>
+        <li>Save deals to your own watchlist</li>
+        <li>Get alerts the moment a price drops</li>
+      </ul>
+      <span class="auth-aside-note">As an Amazon Associate we earn from qualifying purchases.</span>
+    </aside>
+
+    <!-- Form panel -->
+    <main class="auth-main">
+      <div class="auth-card">
+        <a href="/" class="auth-back">← Back to deals</a>
+        <h1 class="auth-title font-display">Log in to your account</h1>
+        <p class="auth-subtitle">New here? <a href="/accounts/signup/">Create an account</a></p>
+
+        {% if messages %}
+          <div class="auth-messages">
+            {% for message in messages %}
+              <div class="auth-flash auth-flash-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% if form.non_field_errors %}
+          <div class="auth-flash auth-flash-error">{{ form.non_field_errors|striptags }}</div>
+        {% endif %}
+
+        <form method="post" action="" class="auth-form" novalidate>
+          {% csrf_token %}
+          {% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}
+
+          <label class="auth-label" for="{{ form.username.id_for_label }}">Username</label>
+          {{ form.username }}
+          {% for error in form.username.errors %}<span class="auth-field-error">{{ error }}</span>{% endfor %}
+
+          <label class="auth-label" for="{{ form.password.id_for_label }}">Password</label>
+          {{ form.password }}
+          {% for error in form.password.errors %}<span class="auth-field-error">{{ error }}</span>{% endfor %}
+
+          <button type="submit" class="auth-submit">Log in</button>
+        </form>
+      </div>
+    </main>
+
+  </div>
+</body>
+</html>

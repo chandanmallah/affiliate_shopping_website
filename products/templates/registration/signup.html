@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Create your account  DEALHUNT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap">
+  <link rel="stylesheet" href="{% static 'products/css/styles.css' %}">
+</head>
+<body>
+  <div class="auth-shell">
+
+    <aside class="auth-aside hero-bg">
+      <a href="/" class="auth-brand">DEALS<span>FORFREE</span></a>
+      <div class="auth-aside-body">
+        <h2 class="font-display">Join the list.</h2>
+        <p>Create a free account to build your watchlist and never miss a lightning drop.</p>
+      </div>
+      <ul class="auth-perks">
+        <li>Free, no card required</li>
+        <li>Your own saved deals, on any device</li>
+        <li>Opt-in price-drop alerts</li>
+      </ul>
+      <span class="auth-aside-note">As an Amazon Associate we earn from qualifying purchases.</span>
+    </aside>
+
+    <main class="auth-main">
+      <div class="auth-card">
+        <a href="/" class="auth-back">← Back to deals</a>
+        <h1 class="auth-title font-display">Create your account</h1>
+        <p class="auth-subtitle">Already a member? <a href="/accounts/login/">Log in</a></p>
+
+        {% if messages %}
+          <div class="auth-messages">
+            {% for message in messages %}
+              <div class="auth-flash auth-flash-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="post" action="" class="auth-form" novalidate>
+          {% csrf_token %}
+          {% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}
+
+          <label class="auth-label" for="{{ form.username.id_for_label }}">Username</label>
+          {{ form.username }}
+          {% for error in form.username.errors %}<span class="auth-field-error">{{ error }}</span>{% endfor %}
+
+          <label class="auth-label" for="{{ form.email.id_for_label }}">Email</label>
+          {{ form.email }}
+          {% for error in form.email.errors %}<span class="auth-field-error">{{ error }}</span>{% endfor %}
+
+          <label class="auth-label" for="{{ form.password1.id_for_label }}">Password</label>
+          {{ form.password1 }}
+          {% for error in form.password1.errors %}<span class="auth-field-error">{{ error }}</span>{% endfor %}
+          {% if form.password1.help_text %}<span class="auth-help">{{ form.password1.help_text|safe }}</span>{% endif %}
+
+          <label class="auth-label" for="{{ form.password2.id_for_label }}">Confirm password</label>
+          {{ form.password2 }}
+          {% for error in form.password2.errors %}<span class="auth-field-error">{{ error }}</span>{% endfor %}
+
+          <button type="submit" class="auth-submit">Create account</button>
+        </form>
+
+        <p class="auth-legal">By creating an account you agree to our Terms and Privacy Policy.</p>
+      </div>
+    </main>
+
+  </div>
+</body>
+</html>

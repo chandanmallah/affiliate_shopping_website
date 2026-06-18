@@ -2,295 +2,251 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/chandanmallah/css_for_affiliate@main/styles.css">
-  <!-- <link rel="stylesheet" type="text/css" href="file:///C:/Users/Administrator/Desktop/affilaite%20deployed/affiliate_shopping_website/products/static/products/css/styles.css"> -->
-  <!-- <link rel="stylesheet" href="{% static 'products/css/styles.css' %}">  -->
-  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>{{ product.link.title }} — DEALHUNT</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap">
+
+  <!-- Local theme stylesheet (same pink theme as the rest of the site) -->
+  <link rel="stylesheet" href="{% static 'products/css/styles.css' %}">
+
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HXD0PPQM64"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-  
     gtag('config', 'G-HXD0PPQM64');
-  </script>  
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7591421129198559"
-  crossorigin="anonymous"></script>    
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{{ product.link.title }}</title>
-  
-  <style>
-    .logo {
-      display: flex;
-      align-items: center;
-      position: relative;
-    }
-    
-    .logo-icon {
-      position: relative;
-      width: 40px;
-      height: 40px;
-      margin-right: 10px;
-    }
-    
-    .hexagon-bg {
-      position: absolute;
-      width: 38px;
-      height: 22px;
-      background: linear-gradient(90deg, #1e88e5, #0d47a1);
-      top: 9px;
-      left: 1px;
-      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-      box-shadow: 0 0 6px rgba(30, 136, 229, 0.4);
-      animation: slow-rotate 15s linear infinite;
-    }
-    
-    .inner-hexagon {
-      position: absolute;
-      width: 30px;
-      height: 17px;
-      background: #ffffff;
-      top: 11.5px;
-      left: 5px;
-      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-      z-index: 1;
-    }
-    
-    .circle {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #1e88e5, #0d47a1);
-      top: 10px;
-      left: 10px;
-      box-shadow: 0 0 5px rgba(30, 136, 229, 0.4);
-      z-index: 2;
-    }
-    
-    .inner-circle {
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #ffffff;
-      top: 13px;
-      left: 13px;
-      z-index: 3;
-    }
-    
-    .logo-text {
-      font-size: 20px;
-      font-weight: bold;
-      text-transform: lowercase;
-      letter-spacing: 1px;
-      color: #2c3e50;
-    }
-    
-    .shop-text {
-      color: #1e88e5;
-    }
-    
-    @keyframes slow-rotate {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
+  </script>
 </head>
 <body>
-  <header>
-    <div class="logo">
-      <div class="logo-icon">
-        <div class="hexagon-bg"></div>
-        <div class="inner-hexagon"></div>
-        <div class="circle"></div>
-        <div class="inner-circle"></div>
-      </div>
-      <h2 class="logo-text">CM<span class="shop-text">.shop</span></h2>
-    </div>
-  </header>
 
-  <div class="main-content">
-    <a href="/" class="back-link">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="19" y1="12" x2="5" y2="12"></line>
-        <polyline points="12 19 5 12 12 5"></polyline>
-      </svg>
-      Back to Products
-    </a>
+  <!-- ============ HEADER (matches home page) ============ -->
+  <div class="header-stack glass-panel">
+    <header>
+      <a href="/" class="logo-container">
+        <h1 class="logo-text text-foreground">DEALS<span>FORFREE</span></h1>
+      </a>
 
-    <div class="product-container">
-      <div class="product-image-container">
-        <img src="{{ product.image_url }}" alt="{{ product.link.title }}" class="product-image">
-        <div class="image-overlay"></div>
-        <div class="floating-badge">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-            <path d="M2 17l10 5 10-5"></path>
-            <path d="M2 12l10 5 10-5"></path>
-          </svg>
-          Premium Product
-        </div>
+      <div class="search-bar-wrapper">
+        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="search" class="search-input text-foreground" placeholder="Search product drops, smart devices, computing items...">
       </div>
 
-      <div class="product-info">
-        <h1>{{ product.link.title }}</h1>
-        
-        <div class="product-description">
-          {{ product.description }}
-        </div>
-        
-        <div class="spec-grid">
-          <div class="spec-item">
-            <div class="spec-label">Category</div>
-            <div class="spec-value">Tech Innovation</div>
+      <nav>
+        <a href="/" class="nav-link">Top Picks</a>
+        <a href="#" class="nav-link">Live Tracker</a>
+        {% if user.is_authenticated %}
+          <div class="account-chip">
+            <span class="account-avatar">{{ user.username|first|upper }}</span>
+            <span class="account-name">{{ user.username }}</span>
+            <a href="{% url 'logout' %}" class="account-logout">Log out</a>
           </div>
-          <div class="spec-item">
-            <div class="spec-label">Availability</div>
-            <div class="spec-value">In Stock</div>
+        {% else %}
+          <div class="nav-auth">
+            <a href="{% url 'login' %}" class="nav-login">Log in</a>
+            <a href="{% url 'signup' %}" class="nav-signup">Sign up</a>
           </div>
-          <div class="spec-item">
-            <div class="spec-label">Rating</div>
-            <div class="spec-value">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
-            </div>
-          </div>
-          <div class="spec-item">
-            <div class="spec-label">Share</div>
-            <div class="spec-value" style="display: flex; gap: 0.75rem;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-              </svg>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
-              </svg>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div class="action-buttons">
-          <a href="{{ product.link.product_url }}" target="_blank" class="primary-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="9" cy="21" r="1"></circle>
-              <circle cx="20" cy="21" r="1"></circle>
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-            </svg>
-            Buy Now
-          </a>
-          <button class="secondary-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"></path>
-            </svg>
-            Add to Wishlist
-          </button>
-        </div>
-      </div>
-    </div>
+        {% endif %}
+      </nav>
+    </header>
   </div>
 
-  <footer>
-    <div class="footer-content">
-      <div class="footer-column">
-        <h3>Zanchan Shop</h3>
-        <div class="footer-links">
-          <a href="#">About Us</a>
-          <a href="#">Our Mission</a>
-          <a href="#">Careers</a>
-          <a href="#">Press</a>
+  <!-- ============ BREADCRUMB ============ -->
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a>
+    <span class="breadcrumb-sep">/</span>
+    {% if detail.specs.product_group %}
+      <span>{{ detail.specs.product_group }}</span>
+      <span class="breadcrumb-sep">/</span>
+    {% endif %}
+    <span class="breadcrumb-current">{{ product.link.title|truncatechars:48 }}</span>
+  </nav>
+
+  <!-- ============ PRODUCT ============ -->
+  <main class="pdp-wrapper">
+    <div class="pdp-grid">
+
+      <!-- Gallery -->
+      <div class="pdp-gallery">
+        <div class="pdp-gallery-inner shadow-card">
+          <span class="amazon-badge">amazon</span>
+          <img src="{{ product.image_url }}" alt="{{ product.link.title }}" class="pdp-image">
         </div>
       </div>
-      
-      <div class="footer-column">
-        <h3>Shop</h3>
-        <div class="footer-links">
-          <a href="#">All Products</a>
-          <a href="#">Featured</a>
-          <a href="#">New Arrivals</a>
-          <a href="#">Best Sellers</a>
+
+      <!-- Info -->
+      <div class="pdp-info">
+        <div class="pdp-flags">
+          <span class="pdp-sponsored">Sponsored</span>
+          {% if product.created_at %}<span class="pdp-posted">Posted {{ product.created_at|date:"d M Y" }}</span>{% endif %}
         </div>
-      </div>
-      
-      <div class="footer-column">
-        <h3>Support</h3>
-        <div class="footer-links">
-          <a href="#">Contact Us</a>
-          <a href="#">FAQs</a>
-          <a href="#">Shipping</a>
-          <a href="#">Returns</a>
+
+        <h1 class="pdp-title">{{ product.link.title }}</h1>
+
+        {% if detail.availability.condition %}
+          <p class="pdp-condition">Condition: <strong>{{ detail.availability.condition }}</strong></p>
+        {% endif %}
+
+        {% if detail.pricing.has_price or detail.pricing.has_mrp %}
+        <div class="pdp-price-block">
+          <div class="pdp-price-row">
+            {% if detail.pricing.has_price %}
+              <span class="pdp-price-current">{{ detail.pricing.price_display|default:detail.pricing.price_amount }}</span>
+            {% endif %}
+            {% if detail.pricing.has_mrp %}
+              <span class="pdp-price-mrp"><s>{{ detail.pricing.mrp_display|default:detail.pricing.mrp_amount }}</s></span>
+            {% endif %}
+            {% if detail.pricing.has_discount %}
+              <span class="pdp-discount-badge">{{ detail.pricing.discount_percentage }}% off</span>
+            {% endif %}
+          </div>
+          {% if detail.pricing.savings_display %}
+            <div class="pdp-savings">You save {{ detail.pricing.savings_display }}</div>
+          {% endif %}
         </div>
+        {% endif %}
+
+        <div class="pdp-actions">
+          <a href="{{ product.link.product_url }}" target="_blank" rel="nofollow sponsored noopener" class="pdp-buy">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            Buy Now on Amazon
+          </a>
+          <button class="pdp-wishlist" type="button" aria-label="Add to wishlist">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          </button>
+        </div>
+
+        <div class="pdp-share">
+          <span class="pdp-share-label">Share this deal</span>
+          <div class="pdp-share-btns">
+            <a class="pdp-share-btn" target="_blank" rel="noopener"
+               href="https://wa.me/?text={{ product.link.title|urlencode }}%20{{ request.build_absolute_uri|urlencode }}">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.518 5.26l-.999 3.648 3.97-1.057zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+              WhatsApp
+            </a>
+            <a class="pdp-share-btn" target="_blank" rel="noopener"
+               href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri|urlencode }}">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.026 4.388 11.02 10.125 11.927v-8.437H7.078v-3.49h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.49h-2.796v8.437C19.612 23.094 24 18.1 24 12.073z"/></svg>
+              Facebook
+            </a>
+            <a class="pdp-share-btn" target="_blank" rel="noopener"
+               href="https://twitter.com/intent/tweet?text={{ product.link.title|urlencode }}&url={{ request.build_absolute_uri|urlencode }}">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              Twitter
+            </a>
+          </div>
+        </div>
+
+        <!-- Facts -->
+        <div class="pdp-facts">
+          {% if detail.specs.brand %}<div class="pdp-fact"><span class="pdp-fact-label">Brand</span><span class="pdp-fact-value">{{ detail.specs.brand }}</span></div>{% endif %}
+          {% if detail.availability.merchant_name %}<div class="pdp-fact"><span class="pdp-fact-label">Sold by</span><span class="pdp-fact-value">{{ detail.availability.merchant_name }}</span></div>{% endif %}
+          {% if detail.specs.manufacturer %}<div class="pdp-fact"><span class="pdp-fact-label">Manufacturer</span><span class="pdp-fact-value">{{ detail.specs.manufacturer }}</span></div>{% endif %}
+          {% if detail.specs.model_number %}<div class="pdp-fact"><span class="pdp-fact-label">Model</span><span class="pdp-fact-value">{{ detail.specs.model_number }}</span></div>{% endif %}
+          {% if detail.specs.item_part_number %}<div class="pdp-fact"><span class="pdp-fact-label">Part number</span><span class="pdp-fact-value">{{ detail.specs.item_part_number }}</span></div>{% endif %}
+          {% if detail.specs.color %}<div class="pdp-fact"><span class="pdp-fact-label">Colour</span><span class="pdp-fact-value">{{ detail.specs.color }}</span></div>{% endif %}
+          {% if detail.specs.size %}<div class="pdp-fact"><span class="pdp-fact-label">Size</span><span class="pdp-fact-value">{{ detail.specs.size }}</span></div>{% endif %}
+          {% if detail.specs.unit_count %}<div class="pdp-fact"><span class="pdp-fact-label">Unit count</span><span class="pdp-fact-value">{{ detail.specs.unit_count }}</span></div>{% endif %}
+          {% if detail.specs.dimensions_display %}<div class="pdp-fact"><span class="pdp-fact-label">Dimensions (H × L × W)</span><span class="pdp-fact-value">{{ detail.specs.dimensions_display }}</span></div>{% endif %}
+          {% if detail.specs.weight %}<div class="pdp-fact"><span class="pdp-fact-label">Weight</span><span class="pdp-fact-value">{{ detail.specs.weight }}</span></div>{% endif %}
+          {% if detail.specs.warranty %}<div class="pdp-fact"><span class="pdp-fact-label">Warranty</span><span class="pdp-fact-value">{{ detail.specs.warranty }}</span></div>{% endif %}
+          {% if detail.availability.message %}<div class="pdp-fact"><span class="pdp-fact-label">Availability</span><span class="pdp-fact-value">{{ detail.availability.message }}</span></div>{% endif %}
+          {% if detail.deal.is_active %}<div class="pdp-fact"><span class="pdp-fact-label">Deal</span><span class="pdp-fact-value">{{ detail.deal.type }}{% if detail.deal.end_time %} · ends {{ detail.deal.end_time }}{% endif %}</span></div>{% endif %}
+        </div>
+
+        <!-- Features -->
+        {% if detail.features %}
+        <div class="pdp-features">
+          <h2 class="pdp-features-heading">Key features</h2>
+          <ul class="pdp-features-list">
+            {% for feature in detail.features %}<li>{{ feature }}</li>{% endfor %}
+          </ul>
+        </div>
+        {% elif product.description %}
+        <div class="pdp-features">
+          <h2 class="pdp-features-heading">About this item</h2>
+          <p class="pdp-description">{{ product.description }}</p>
+        </div>
+        {% endif %}
+
+        {% if detail.last_checked_at %}
+          <p class="pdp-last-checked">Price last checked {{ detail.last_checked_at|date:"d M Y, H:i" }}</p>
+        {% endif %}
       </div>
-      
-      <div class="footer-column">
-        <h3>Connect</h3>
-        <div class="footer-links">
-          <a href="#">Instagram</a>
-          <a href="#">Twitter</a>
-          <a href="#">Facebook</a>
-          <a href="#">YouTube</a>
+    </div>
+
+    <!-- ============ DISCLAIMERS ============ -->
+    <div class="pdp-disclaimers">
+      <div class="pdp-disclaimer">
+        <span class="pdp-disclaimer-tag">Disclaimer</span>
+        <p>Product prices and availability are accurate as of the date and time indicated and are subject to change. Any price and availability information displayed on Amazon.in at the time of purchase will apply to the purchase of this product. As an Amazon Associate, DEALHUNT earns from qualifying purchases.</p>
+      </div>
+      <div class="pdp-disclaimer">
+        <span class="pdp-disclaimer-tag">Content disclaimer</span>
+        <p>Certain content that appears on this site comes from Amazon Seller Services Private Limited. This content is provided “as is” and is subject to change or removal at any time. DEALHUNT is not responsible for the accuracy of product information shown.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ FOOTER (with About Us, matches home page) ============ -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-column brand-info">
+        <div class="footer-logo">
+          <span class="logo-fallback-text font-display">DEALS<span>FORFREE</span></span>
+        </div>
+        <h3 class="column-title">About Us</h3>
+        <p class="about-text">
+          At DEALHUNT, we strive to make your shopping experience cheerful by providing deals across a wide range of categories. We work with the best e-commerce companies and search the internet to find and surface exclusive coupons and special discounts at your favourite online stores.
+        </p>
+      </div>
+
+      <div class="footer-column navigation-links">
+        <h3 class="column-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="title-icon"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+          Quick Links
+        </h3>
+        <ul class="link-list">
+            <li><a href="/">Home Page</a></li>
+            <li><a href="{% url 'privacy-policy' %}">Privacy Policy</a></li>
+            <li><a href="{% url 'terms' %}">Terms and Conditions</a></li>
+            <li><a href="{% url 'contact' %}">Contact us</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-column interactions">
+        <div class="support-section">
+          <h3 class="column-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="title-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            Support
+          </h3>
+          <a href="mailto:support@DEALHUNT.in" class="support-email">support@DEALHUNT.in</a>
         </div>
       </div>
     </div>
-    
+
     <div class="footer-bottom">
-      <p>© 2025 Chandan Mallah | Contact: <a href="tel:9892590355">9892590355</a></p>
-      <p><em>As an Amazon Associate, I earn from qualifying purchases.</em></p>
+      <div class="copyright-row">&copy; 2026 DEALHUNT. All Rights Reserved.</div>
+      <p class="admin-notice">
+        <strong>Disclaimer:</strong> DEALHUNT is a participant in the Amazon Associates Program, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to amazon.in. All links generated by the tool are affiliate links and we may earn a commission from qualifying purchases.
+      </p>
     </div>
-    
   </footer>
 
+  <button class="back-to-top" id="backToTopBtn" aria-label="Back to top" type="button">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+  </button>
+
   <script>
-    // Add some subtle animations
     document.addEventListener('DOMContentLoaded', () => {
-      const productImage = document.querySelector('.product-image-container');
-      const productInfo = document.querySelector('.product-info');
-      
-      setTimeout(() => {
-        productImage.style.opacity = '1';
-        productImage.style.transform = 'translateX(0)';
-      }, 300);
-      
-      setTimeout(() => {
-        productInfo.style.opacity = '1';
-        productInfo.style.transform = 'translateX(0)';
-      }, 500);
-      
-      // Image hover effect
-      productImage.addEventListener('mousemove', (e) => {
-        const { left, top, width, height } = productImage.getBoundingClientRect();
-        const x = (e.clientX - left) / width;
-        const y = (e.clientY - top) / height;
-        
-        const image = productImage.querySelector('.product-image');
-        const xOffset = (x - 0.5) * 10;
-        const yOffset = (y - 0.5) * 10;
-        
-        image.style.transform = `scale(1.05) translate(${xOffset}px, ${yOffset}px)`;
-      });
-      
-      productImage.addEventListener('mouseleave', () => {
-        const image = productImage.querySelector('.product-image');
-        image.style.transform = 'scale(1)';
-      });
+      const backToTopBtn = document.getElementById('backToTopBtn');
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 600) backToTopBtn.classList.add('is-visible');
+        else backToTopBtn.classList.remove('is-visible');
+      }, { passive: true });
+      backToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     });
   </script>
 </body>

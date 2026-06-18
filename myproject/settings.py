@@ -24,12 +24,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-g+7vp^wjgnkd20ewfzz!ijlm&ndn=prhf)bzu1%fb)oku^_0)f'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = ['*']
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
 
 # Application definition
 
@@ -84,7 +88,7 @@ TEMPLATES = [
 # ]
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
-SHORTENER_DOMAIN = "https://amozn.in"
+SHORTENER_DOMAIN = "https://dealhunts.in."
 
 # ADMIN_SECRET = config("ADMIN_SECRET")
 # SHORTENER_DOMAIN = "http://127.0.0.1:8000/"
@@ -146,10 +150,13 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-# STATIC_URL = 'static/'
-# Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Point this exactly to your app's base static folder location
+STATICFILES_DIRS = [
+    BASE_DIR / 'products' / 'static',
+]
 
 
 

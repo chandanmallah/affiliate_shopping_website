@@ -1,22 +1,69 @@
 {% for product in page_obj %}
-<div class="product-card">
-  <div class="product-image-wrap">
-    <span class="amazon-badge">amazon</span>
-    <img src="{{ product.image_url }}" alt="{{ product.link.title }}" class="product-image" loading="lazy" />
+<div class="deal-card shadow-card">
+  <div class="card-img-anchor">
+    {# Category badge: Amazon browse-node name, else normalized category, else "Popular" #}
+    {% if product.category_rankings and product.category_rankings.0.name %}
+      <span class="deal-badge" style="position: absolute; top: 12px; left: 12px; background: #1f4e79; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
+        {{ product.category_rankings.0.name }}
+      </span>
+    {% elif product.category %}
+      <span class="deal-badge" style="position: absolute; top: 12px; left: 12px; background: #1f4e79; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
+        {{ product.category }}
+      </span>
+    {% else %}
+      <span class="deal-badge popular-badge">Popular</span>
+    {% endif %}
+
+    {# Platform pill (top-right) — only for non-Amazon sources #}
+    {% if product.source and product.source != 'amazon' %}
+      <span class="source-pill source-{{ product.source }}" style="position: absolute; top: 12px; right: 12px; padding: 3px 9px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.02em; z-index: 2; color: #fff; text-transform: capitalize; box-shadow: 0 2px 4px rgba(0,0,0,0.18);
+        {% if product.source == 'flipkart' %}background:#2874f0;{% elif product.source == 'myntra' %}background:#ff3f6c;{% elif product.source == 'ajio' %}background:#2f2f2f;{% else %}background:#555;{% endif %}">
+        {{ product.get_source_display }}
+      </span>
+    {% endif %}
+
+    <img src="{{ product.image_url }}" alt="{{ product.link.title }}" loading="lazy">
+    <span class="card-ad-tag"></span>
   </div>
-  <div class="product-details">
-    <h2 class="product-title">{{ product.link.title }}</h2>
-    <div class="product-meta">
-      <span class="stars">★★★★☆</span>
-      <span class="review-count">on Amazon</span>
+
+  <div class="card-details card-gradient">
+    {% if product.category_rankings and product.category_rankings.0.path %}
+      <div class="card-path-context" style="font-size: 0.72rem; color: #757575; margin-bottom: 0.4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ product.category_rankings.0.path }}">
+        {{ product.category_rankings.0.path }}
+      </div>
+    {% elif product.category %}
+      <div class="card-path-context" style="font-size: 0.72rem; color: #757575; margin-bottom: 0.4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ product.category }}">
+        {{ product.category }}
+      </div>
+    {% endif %}
+
+    <h3 class="card-title">{{ product.link.title }}</h3>
+
+    <div class="price-row" style="margin: 0.5rem 0 1rem 0; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+      <span class="current-price" style="font-size: 1.15rem; font-weight: 700; color: var(--text-foreground, #111);">
+        {{ product.price_display }}
+      </span>
+
+      {% if product.mrp_display %}
+        <span class="mrp-price" style="text-decoration: line-through; color: #999; font-size: 0.88rem;">
+          {{ product.mrp_display }}
+        </span>
+      {% endif %}
+
+      {% if product.discount_percentage %}
+        <span class="discount-tag" style="color: #2e7d32; font-size: 0.85rem; font-weight: 600; background: #e8f5e9; padding: 2px 6px; border-radius: 4px;">
+          {{ product.discount_percentage }}% Off
+        </span>
+      {% endif %}
     </div>
-    <p class="product-description">{{ product.description|truncatechars:110 }}</p>
-    <a href="/product/{{ product.link.slug }}/" class="view-button">
-      View on Amazon
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-      </svg>
+
+    <a href="/product/{{ product.link.slug }}/" class="cta-btn custom-secondary-btn" style="margin-top: auto;">
+      Check Offer
     </a>
   </div>
+</div>
+{% empty %}
+<div class="no-deals-fallback" style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: #757575;">
+  <p>No active limited-time deal drops found in this collection right now.</p>
 </div>
 {% endfor %}

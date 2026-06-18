@@ -1,0 +1,169 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Affiliate Link Converter</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap">
+  <link rel="stylesheet" href="{% static 'products/css/styles.css' %}">
+
+  <style>
+    .cv-wrap { max-width: 680px; margin: 2.5rem auto; padding: 0 1rem; }
+    .cv-card { background:#fff; border:1px solid rgba(17,24,39,.08); border-radius:20px; padding:2rem 2.25rem; box-shadow:0 12px 30px rgba(17,24,39,.08); }
+    .cv-head { text-align:center; margin-bottom:1.5rem; }
+    .cv-head h1 { margin:0; font-size:2rem; line-height:1.1; }
+    .cv-head p { margin:.4rem 0 0; color:#6b7280; font-size:.92rem; }
+    .form-group { margin-bottom:1.15rem; }
+    .form-group label { display:block; font-size:.85rem; font-weight:600; color:#374151; margin-bottom:.4rem; }
+    .cv-field { width:100%; padding:.75rem .9rem; font:inherit; color:#111827; background:#fff; border:1px solid #d7dbe2; border-radius:12px; }
+    .cv-field:focus { outline:none; border-color:#ff4a7a; box-shadow:0 0 0 3px rgba(255,74,122,.15); }
+    .cv-submit { width:100%; margin-top:.5rem; padding:.95rem 1rem; font:600 1rem/1 inherit; color:#fff; background:#ff4a7a; border:none; border-radius:12px; cursor:pointer; }
+    .cv-submit:hover { transform:translateY(-1px); box-shadow:0 8px 18px rgba(255,74,122,.35); }
+    .cv-submit:disabled { opacity:.65; cursor:default; transform:none; box-shadow:none; }
+
+    .cv-result { margin-top:1.75rem; display:none; }
+    .cv-result.show { display:block; }
+    .cv-error { margin-top:1.5rem; padding:.9rem 1rem; border-radius:12px; background:#fdecef; color:#c0294a; border:1px solid #f4c6d1; display:none; }
+    .cv-error.show { display:block; }
+
+    .cv-linkbox { display:flex; gap:.5rem; align-items:stretch; margin:.5rem 0 1rem; }
+    .cv-linkbox input { flex:1; padding:.7rem .9rem; border:1px solid #d7dbe2; border-radius:10px; font:inherit; color:#111827; background:#f7f8fa; }
+    .cv-copy { padding:.7rem 1rem; border:none; border-radius:10px; background:#1f4e79; color:#fff; font-weight:600; cursor:pointer; white-space:nowrap; }
+    .cv-copy:hover { background:#163a5c; }
+
+    .cv-preview { display:flex; gap:1rem; align-items:center; border:1px solid #eef0f4; border-radius:14px; padding:1rem; margin-top:1rem; }
+    .cv-preview img { width:84px; height:84px; object-fit:contain; border-radius:10px; background:#fff; border:1px solid #f0f0f0; }
+    .cv-preview .t { font-weight:600; color:#111827; font-size:.95rem; line-height:1.3; }
+    .cv-preview .p { margin-top:.35rem; color:#111827; font-weight:700; }
+    .cv-preview .p .mrp { color:#999; text-decoration:line-through; font-weight:400; font-size:.85rem; margin-left:.4rem; }
+    .cv-preview .p .off { color:#2e7d32; font-size:.82rem; font-weight:600; margin-left:.4rem; }
+    .cv-openrow { margin-top:1rem; }
+    .cv-open { display:inline-block; color:#1f4e79; font-weight:600; text-decoration:none; }
+    .cv-open:hover { text-decoration:underline; }
+    .cv-hint { font-size:.72rem; color:#9aa0aa; margin-top:.3rem; }
+  </style>
+</head>
+<body>
+  <div class="cv-wrap">
+    <div class="cv-card glass-panel shadow-soft">
+      <div class="cv-head">
+        <h1 class="font-display">Affiliate Link Converter</h1>
+        <p>Paste an Amazon product URL, apply your tag, and get a shareable product page link.</p>
+      </div>
+
+      {% csrf_token %}
+
+      <form id="convertForm">
+        <div class="form-group">
+          <label for="url">Amazon Product URL</label>
+          <input type="url" id="url" class="cv-field" placeholder="https://www.amazon.in/dp/B0XXXXXXXX" required>
+        </div>
+        <div class="form-group">
+          <label for="tag">Affiliate Bot</label>
+          <select id="tag" class="cv-field">
+            {% for name, tag in bots %}
+              <option value="{{ tag }}" {% if tag == default_tag %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
+          <p class="cv-hint" id="tagHint"></p>
+        </div>
+        <button type="submit" id="convertBtn" class="cv-submit cta-btn">Convert &amp; Post</button>
+      </form>
+
+      <div id="error" class="cv-error"></div>
+
+      <div id="result" class="cv-result">
+        <label style="font-size:.85rem; font-weight:600; color:#374151;">Shareable product page link</label>
+        <div class="cv-linkbox">
+          <input type="text" id="pageUrl" readonly>
+          <button type="button" class="cv-copy" id="copyBtn">Copy</button>
+        </div>
+        <div class="cv-preview" id="preview"></div>
+        <div class="cv-openrow">
+          <a href="#" target="_blank" class="cv-open" id="openLink">Open product page &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function getCSRFToken() {
+      for (let c of document.cookie.split(';')) {
+        c = c.trim();
+        if (c.startsWith('csrftoken=')) return decodeURIComponent(c.substring(10));
+      }
+      return '';
+    }
+
+    const form = document.getElementById('convertForm');
+    const btn = document.getElementById('convertBtn');
+    const errEl = document.getElementById('error');
+    const resEl = document.getElementById('result');
+
+    // Show which Amazon tag the selected bot maps to.
+    const tagSel = document.getElementById('tag');
+    const tagHint = document.getElementById('tagHint');
+    function showTag() { tagHint.textContent = 'Tag: ' + tagSel.value; }
+    tagSel.addEventListener('change', showTag);
+    showTag();
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      errEl.className = 'cv-error';
+      resEl.className = 'cv-result';
+      btn.disabled = true;
+      btn.textContent = 'Converting…';
+
+      try {
+        const res = await fetch('/api/convert/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+          body: JSON.stringify({
+            url: document.getElementById('url').value,
+            tag: document.getElementById('tag').value
+          })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errEl.textContent = '✗ ' + (data.error || 'Conversion failed.');
+          errEl.className = 'cv-error show';
+          return;
+        }
+
+        document.getElementById('pageUrl').value = data.product_page_url;
+        document.getElementById('openLink').href = data.product_page_url;
+
+        const p = data.preview || {};
+        let priceHtml = p.price ? `<span>${p.price}</span>` : '';
+        if (p.mrp) priceHtml += `<span class="mrp">${p.mrp}</span>`;
+        if (p.discount_percent) priceHtml += `<span class="off">${p.discount_percent}% off</span>`;
+        document.getElementById('preview').innerHTML =
+          `${p.image ? `<img src="${p.image}" alt="">` : ''}
+           <div><div class="t">${p.title || ''}</div><div class="p">${priceHtml}</div></div>`;
+
+        resEl.className = 'cv-result show';
+      } catch (err) {
+        errEl.textContent = '✗ Something went wrong. Check the server logs.';
+        errEl.className = 'cv-error show';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Convert & Post';
+      }
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', function () {
+      const inp = document.getElementById('pageUrl');
+      inp.select();
+      navigator.clipboard.writeText(inp.value).then(() => {
+        this.textContent = 'Copied!';
+        setTimeout(() => { this.textContent = 'Copy'; }, 1500);
+      });
+    });
+  </script>
+</body>
+</html>

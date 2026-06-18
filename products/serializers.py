@@ -1,11 +1,12 @@
 # serializers.py
+
 from rest_framework import serializers
 from .models import AmazonLink, Product
 
 class AmazonLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = AmazonLink
-        fields = ['id', 'product_url', 'title', 'slug', 'added_at']
+        fields = ['id', 'product_url', 'title', 'slug', 'asin', 'added_at']
         read_only_fields = ['slug', 'added_at']
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -13,7 +14,9 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'link', 'description', 'image_url', 'created_at']
+        # Explicitly tracking operational presentation boundaries
+        fields = ['id', 'link', 'description', 'image_url', 'title', 'source', 'category',
+                  'price_display', 'mrp_display', 'discount_percentage', 'created_at']
         read_only_fields = ['created_at']
 
     def create(self, validated_data):

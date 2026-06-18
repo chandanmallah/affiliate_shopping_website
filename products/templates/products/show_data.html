@@ -1,0 +1,255 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Inventory Manager — DEALHUNT</title>
+  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="{% static 'products/css/styles.css' %}">
+  
+  <style>
+    .nested-detail-box { display: none; background: var(--color-surface); border-top: 1px dashed var(--color-border); padding: 1.5rem; font-size: 0.85rem; color: var(--color-foreground); }
+    .nested-detail-box.open { display: table-row; }
+    .badge-sub { font-size: 0.75rem; color: var(--color-muted-foreground); background: rgba(255,255,255,0.05); padding: 0.2rem 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.25rem; }
+    .spec-pill { background: rgba(37, 99, 235, 0.1); color: #3b82f6; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 600; font-size: 0.75rem; }
+    .expand-trigger-btn { background: transparent; border: 1px solid var(--color-border); color: var(--color-foreground); cursor: pointer; padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 500; transition: all 0.2s; }
+    .expand-trigger-btn:hover { background: var(--color-surface); border-color: var(--color-muted-foreground); }
+  </style>
+</head>
+<body>
+
+  <div class="header-stack glass-panel">
+    <header>
+      <a href="/" class="logo-container">
+        <h1 class="logo-text text-foreground">DEALS<span>FORFREE</span></h1>
+      </a>
+      <nav>
+        <a href="/" class="nav-link">Live Storefront</a>
+        <a href="/add-product/" class="nav-link">Add Product</a>
+      </nav>
+    </header>
+  </div>
+
+  <main class="main-content main-grid-wrapper">
+    
+    <div class="section-title-strip">
+      <h2 class="font-display">Product Catalog Inventory ({{ page_obj.paginator.count }} Active)</h2>
+    </div>
+
+    <div class="inventory-table-container shadow-card" style="background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-xl); overflow: hidden; margin-bottom: 2rem;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+        <thead>
+          <tr style="background: var(--color-surface); border-bottom: 1px solid var(--color-border); color: var(--color-muted-foreground); font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">
+            <th style="padding: 1rem 1.5rem;">Product Details</th>
+            <th style="padding: 1rem 1.5rem;">ASIN / Group</th>
+            <th style="padding: 1rem 1.5rem;">Live Pricing</th>
+            <th style="padding: 1rem 1.5rem;">Availability / Merchant</th>
+            <th style="padding: 1rem 1.5rem; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in page_obj %}
+          <!-- Main Structural Row Container -->
+          <tr id="product-row-{{ product.link.id }}" style="border-bottom: 1px solid var(--color-border); transition: background-color 0.2s;">
+            <td style="padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem; max-width: 420px;">
+              <div style="width: 60px; height: 60px; background: var(--color-surface); border-radius: var(--radius-sm); border: 1px solid var(--color-border); padding: 0.25rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                {% if product.image_url %}
+                <img src="{{ product.image_url }}" alt="{{ product.title }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                {% else %}
+                <span style="font-size: 0.6rem; color: var(--color-muted-foreground);">No Image</span>
+                {% endif %}
+              </div>
+              <div style="overflow: hidden;">
+                <h4 style="font-weight: 600; color: var(--color-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ product.title|default:product.link.title }}">
+                  {{ product.title|default:product.link.title }}
+                </h4>
+                <p style="font-size: 0.75rem; color: var(--color-muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 0.2rem;">
+                  Brand: <span style="color: var(--color-foreground); font-weight: 500;">{{ product.brand|default:"N/A" }}</span>
+                </p>
+              </div>
+            </td>
+
+            <td style="padding: 1.25rem 1.5rem; color: var(--color-foreground);">
+              <div style="font-family: monospace; font-weight: 700;">{{ product.link.asin|default:"—" }}</div>
+              {% if product.product_group %}
+              <div class="badge-sub">{{ product.product_group }}</div>
+              {% endif %}
+            </td>
+
+            <td style="padding: 1.25rem 1.5rem;">
+              {% if product.price_display %}
+              <span style="font-weight: 700; color: var(--color-deal);">{{ product.price_display }}</span>
+              {% if product.discount_percentage %}
+              <span style="font-size: 0.75rem; background: var(--color-destructive); color: var(--color-destructive-foreground); padding: 0.15rem 0.4rem; border-radius: 4px; margin-left: 0.4rem; font-weight: 700;">
+                -{{ product.discount_percentage }}%
+              </span>
+              {% endif %}
+              <div style="font-size: 0.72rem; color: var(--color-muted-foreground); margin-top: 0.15rem;">MRP: {{ product.mrp_display|default:"—" }}</div>
+              {% else %}
+              <span style="color: var(--color-muted-foreground); font-size: 0.85rem;">No offer listings</span>
+              {% endif %}
+            </td>
+
+            <td style="padding: 1.25rem 1.5rem; font-size: 0.85rem; color: var(--color-foreground);">
+              <div>{{ product.availability_message|default:"In Stock" }}</div>
+              <div style="font-size: 0.75rem; color: var(--color-muted-foreground); margin-top: 0.15rem;">
+                Seller: {{ product.merchant_name|default:"Amazon" }} {% if product.is_buy_box_winner %}<span class="spec-pill" style="background:rgba(16,185,129,0.1); color:#10b981; margin-left:0.25rem;">BuyBox</span>{% endif %}
+              </div>
+            </td>
+
+            <td style="padding: 1.25rem 1.5rem; text-align: right; white-space: nowrap;">
+              <button onclick="toggleDetailDrawer('drawer-{{ product.link.id }}')" class="expand-trigger-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                Inspect Data
+              </button>
+              <button 
+                onclick="triggerProductDeletion('{{ product.link.id }}', '{{ product.title|default:product.link.title|escapejs }}')"
+                class="cta-btn" 
+                style="display: inline-flex; width: auto; background: var(--color-destructive); color: var(--color-destructive-foreground); font-size: 0.8rem; padding: 0.5rem 1rem; border-radius: var(--radius-sm); margin-left: 0.5rem;"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                Delete
+              </button>
+            </td>
+          </tr>
+
+          <!-- Hidden Micro Metadata Inspect Drawer Dropdown Row -->
+          <tr id="drawer-{{ product.link.id }}" class="nested-detail-box">
+            <td colspan="5" style="padding: 1.5rem 2rem; background: rgba(0,0,0,0.15); border-bottom: 1px solid var(--color-border);">
+              <div style="display: grid; grid-template-columns: 1.2fr 2fr; gap: 2rem;">
+                
+                <!-- Left Hand Details Layout Node: specs matrix -->
+                <div>
+                  <h5 style="text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em; color: var(--color-muted-foreground); margin-bottom: 0.75rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.25rem;">Technical & Manufacturing Dimensions</h5>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.8rem;">
+                    <div><span style="color:var(--color-muted-foreground)">Manufacturer:</span> {{ product.manufacturer|default:"—" }}</div>
+                    <div><span style="color:var(--color-muted-foreground)">Part Number:</span> {{ product.item_part_number|default:"—" }}</div>
+                    <div><span style="color:var(--color-muted-foreground)">Model:</span> {{ product.model_number|default:"—" }}</div>
+                    <div><span style="color:var(--color-muted-foreground)">Binding:</span> {{ product.binding|default:"—" }}</div>
+                    <div><span style="color:var(--color-muted-foreground)">Color Grid:</span> {{ product.color|default:"—" }}</div>
+                    <div><span style="color:var(--color-muted-foreground)">Size Label:</span> {{ product.size|default:"—" }}</div>
+                    <div><span style="color:var(--color-muted-foreground)">Unit Count:</span> {{ product.unit_count|default:"—" }}</div>
+                    <div><span style="color:var(--color-muted-foreground)">Total Variant Imgs:</span> {{ product.variant_images|length }}</div>
+                    <div style="grid-column: span 2;"><span style="color:var(--color-muted-foreground)">Dimensions:</span> {{ product.dimension_length }} x {{ product.dimension_width }} x {{ product.dimension_height }} ({{ product.dimension_weight }})</div>
+                    <div style="grid-column: span 2; font-size: 0.72rem; color: var(--color-muted-foreground); margin-top: 0.5rem;">URL Link Trace: <a href="{{ product.link.product_url }}" target="_blank" style="color:#3b82f6; word-break: break-all;">{{ product.link.product_url }}</a></div>
+                  </div>
+                  
+                  <!-- Variant Images Previews Thumbnail Matrix Array rendering -->
+                  {% if product.variant_images %}
+                  <div style="margin-top: 1.25rem;">
+                    <h6 style="font-size: 0.72rem; color: var(--color-muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Synchronized Image Resource Grid</h6>
+                    <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                      {% for img in product.variant_images %}
+                        <img src="{{ img }}" style="width: 38px; height: 38px; object-fit: contain; background: #fff; padding: 0.15rem; border-radius: 4px; border: 1px solid var(--color-border);" title="Variant Asset URL">
+                      {% endfor %}
+                    </div>
+                  </div>
+                  {% endif %}
+                </div>
+
+                <!-- Right Hand Details Layout Node: item feature bulletins list arrays -->
+                <div>
+                  <h5 style="text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em; color: var(--color-muted-foreground); margin-bottom: 0.75rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.25rem;">Extracted Core Features Checklist ({{ product.features|length }} Bullets)</h5>
+                  {% if product.features %}
+                    <ul style="padding-left: 1.1rem; margin: 0; font-size: 0.8rem; line-height: 1.5; color: var(--color-foreground);">
+                      {% for feat in product.features %}
+                        <li style="margin-bottom: 0.4rem;">{{ feat }}</li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <p style="font-style: italic; color: var(--color-muted-foreground); font-size: 0.8rem;">No supplementary attribute bullets parsed from Creators endpoint space.</p>
+                  {% endif %}
+                </div>
+
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" style="padding: 4rem; text-align: center; color: var(--color-muted-foreground);">
+              <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">No Products Found in Inventory</p>
+              <p style="font-size: 0.85rem;">Use the "Add Product" module to stream items via API.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 2rem;">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}" class="category-tab">&larr; Previous</a>
+      {% endif %}
+      
+      <span class="category-tab active" style="cursor: default;">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </span>
+
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="category-tab">Next &rarr;</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </main>
+
+  <input type="hidden" id="django-csrf-token" value="{{ csrf_token }}">
+
+  <script>
+    // Expand/Collapse inspection metrics section smoothly
+    function toggleDetailDrawer(drawerId) {
+      const targetDrawer = document.getElementById(drawerId);
+      if (targetDrawer.style.display === 'table-row') {
+        targetDrawer.style.display = 'none';
+      } else {
+        // Clear open state from peer drawers first for interface tidiness
+        document.querySelectorAll('.nested-detail-box').forEach(el => el.style.display = 'none');
+        targetDrawer.style.display = 'table-row';
+      }
+    }
+
+    async function triggerProductDeletion(linkId, productTitle) {
+      const confirmationText = `Are you absolutely sure you want to remove this product from the dashboard catalog database?\n\n"${productTitle}"`;
+      if (!confirm(confirmationText)) return;
+
+      const csrfToken = document.getElementById('django-csrf-token').value;
+      const targetRow = document.getElementById(`product-row-${linkId}`);
+      const associatedDrawer = document.getElementById(`drawer-${linkId}`);
+
+      try {
+        const response = await fetch(`/api/products/`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ id: linkId })
+        });
+
+        if (response.ok) {
+          targetRow.style.opacity = '0';
+          targetRow.style.transform = 'scale(0.95)';
+          if (associatedDrawer) associatedDrawer.remove();
+          
+          setTimeout(() => {
+            targetRow.remove();
+            if (document.querySelectorAll('tbody tr[id^="product-row-"]').length === 0) {
+              window.location.reload();
+            }
+          }, 300);
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          alert(`❌ Failed to remove selection: ${errorData.error || 'Server processing anomaly.'}`);
+        }
+      } catch (networkError) {
+        console.error('Inventory Sync Engine Error:', networkError);
+        alert('❌ Network infrastructure failure. Verify database cluster connectivity logs.');
+      }
+    }
+  </script>
+</body>
+</html>
