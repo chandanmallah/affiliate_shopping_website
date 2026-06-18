@@ -839,12 +839,16 @@ def redirect_short_url(request, shortcode):
 
 def extract_asin(url):
     """Pull a 10-char Amazon ASIN out of a product URL, or return None."""
-    m = re.search(r'/(?:dp|gp/product)/([A-Z0-9]{10})', url)
-    if m:
-        return m.group(1)
-    m = re.search(r'[?&]hidden-keywords=([A-Z0-9]{10})', url)
-    if m:
-        return m.group(1)
+    patterns = [
+        r'/(?:dp|gp/product|gp/aw/d|gp/aw/d|product)/([A-Z0-9]{10})',
+        r'/dp/([A-Z0-9]{10})',
+        r'[?&](?:asin|ASIN)=([A-Z0-9]{10})',
+        r'[?&]hidden-keywords=([A-Z0-9]{10})',
+    ]
+    for pat in patterns:
+        m = re.search(pat, url)
+        if m:
+            return m.group(1)
     return None
 
 
@@ -966,7 +970,7 @@ def create_short_url(request):
 # Populates the converter page's "Affiliate bot" dropdown so the tag is
 # selected automatically when a bot name is chosen.
 AFFILIATE_BOTS = {
-    "Affiliate bot":             "ashfiyarajguru-21",
+    "ASH":             "ashfiyarajguru-21",
     "DH AFFILIATE BOT":          "banalibanerjee-21",
     "POOJA AFFILIATE BOT":       "alena01-21",
     "Rohin Affiliate Bot":       "lootlobhai-21",
@@ -1034,6 +1038,132 @@ def convert_affiliate_link(request):
     }, status=status.HTTP_201_CREATED)
 
 
+# ─────────────────────────────────────────────────────────────
+# BULK MESSAGE LINK REWRITING
+# ─────────────────────────────────────────────────────────────
+
+SHORT_AMAZON_HOSTS = {"amzn.to", "amzn.in", "a.co", "amzn.eu", "amzn.asia", "link.amazon", "l.amazon"}
+
+
+def is_amazon_host(netloc):
+    h = (netloc or "").lower()
+    if h.startswith("www."):
+        h = h[4:]
+    return (
+        h in SHORT_AMAZON_HOSTS
+        or "amazon." in h          # amazon.in, amazon.com, ...
+        or h.endswith(".amazon")   # link.amazon, l.amazon, ...
+        or h == "amazon"
+    )
+
+
+def resolve_amazon_url(url):
+    """Follow a short/redirecting Amazon link to its final product URL."""
+    headers = {
+        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                       "(KHTML, like Gecko) Chrome/122.0 Safari/537.36")
+    }
+    try:
+        r = requests.head(url, allow_redirects=True, timeout=10, headers=headers)
+        if extract_asin(r.url):
+            return r.url
+    except Exception:
+        pass
+    try:
+        r = requests.get(url, allow_redirects=True, timeout=12, headers=headers)
+        return r.url
+    except Exception:
+        return None
+
+
+def rewrite_message_links(message, tag, link_type, request):
+    """
+    Find every Amazon link in `message` and replace it, leaving all other text
+    (codes, form links, formatting) untouched.
+
+    link_type:
+      "amazon" -> replace with a re-tagged full Amazon URL (fast; no fetch/post)
+      "page"   -> fetch + post the product, replace with its product page URL
+    Returns (converted_message, items, errors).
+    """
+    url_re = re.compile(r'https?://[^\s*<>"\']+')
+    mapping = {}
+    items, errors = [], []
+    processed = set()
+
+    for raw in url_re.findall(message):
+        token = raw.rstrip('.,);:|*')
+        if token in processed:
+            continue
+        processed.add(token)
+
+        parsed = urlparse(token)
+        if not is_amazon_host(parsed.netloc):
+            continue  # leave non-Amazon links (forms, etc.) untouched
+
+        # STEP 1 — always expand the link to its final URL first. Handles
+        # amzn.to / link.amazon / a.co / regional shorteners and any redirect.
+        full = token
+        if not extract_asin(full):
+            full = resolve_amazon_url(token)
+        # STEP 2 — make sure we now have a real product (ASIN present).
+        if not full or not extract_asin(full):
+            errors.append({"url": token, "reason": "Could not resolve link to a product."})
+            continue
+
+        # STEP 3 — fetch + post the product to the site (one row per asin+tag).
+        product, amazon_link, long_url, error = convert_and_upsert(full, tag)
+        if error:
+            errors.append({"url": token, "reason": error})
+            continue
+
+        if link_type == "page":
+            replacement = request.build_absolute_uri(f"/product/{amazon_link.slug}/")
+        else:  # "amazon" — re-tagged full Amazon URL (product still posted above)
+            replacement = amazon_link.product_url
+
+        mapping[token] = replacement
+        items.append({"original": token, "replacement": replacement, "title": product.title})
+
+    # Apply longest tokens first so one URL isn't a prefix of another.
+    converted = message
+    for token in sorted(mapping, key=len, reverse=True):
+        converted = converted.replace(token, mapping[token])
+
+    return converted, items, errors
+
+
+@api_view(["POST"])
+def convert_message(request):
+    """
+    Bulk message converter.
+    POST /api/convert-message/
+    Body: { "message": "<full text>", "tag": "<tag>", "link_type": "amazon"|"page" }
+
+    Returns the same message with every Amazon link re-tagged (or swapped for a
+    product page link), preserving all other content and formatting.
+    """
+    message = (request.data.get("message") or "").strip()
+    bot = (request.data.get("bot") or "").strip()
+    # Resolve the bot name to its tag server-side (tag is never sent to the client).
+    tag = AFFILIATE_BOTS.get(bot) or (request.data.get("tag") or "kuldeepsingh01-21").strip()
+    link_type = (request.data.get("link_type") or "amazon").strip().lower()
+    if link_type not in ("amazon", "page"):
+        link_type = "amazon"
+
+    if not message:
+        return Response({"error": "message is required"}, status=400)
+
+    converted, items, errors = rewrite_message_links(message, tag, link_type, request)
+    return Response({
+        "status": "success",
+        "converted_message": converted,
+        "converted_count": len(items),
+        "items": items,
+        "errors": errors,
+    })
+
+
 @ensure_csrf_cookie
 def affiliate_converter(request):
     """
@@ -1041,8 +1171,8 @@ def affiliate_converter(request):
     The page posts to /api/convert/ and shows the shareable product page link.
     """
     return render(request, "products/affiliate_converter.html", {
-        "bots": list(AFFILIATE_BOTS.items()),
-        "default_tag": "kuldeepsingh01-21",
+        "bots": list(AFFILIATE_BOTS.keys()),
+        "default_bot": "KULDEEP AFFILIATE BOT",
     })
 
 @csrf_exempt

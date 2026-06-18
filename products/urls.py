@@ -43,6 +43,7 @@ urlpatterns = [
 
     path('terms/',   views.terms,   name='terms'),
     path('contact/', views.contact, name='contact'),    
+    path('api/convert-message/', views.convert_message, name='api-convert-message'),
 
     # Fast Redirect Engine Rule  (catch-all — keep this LAST)
     path("<str:code>/", views.redirect_short, name='redirect'),
