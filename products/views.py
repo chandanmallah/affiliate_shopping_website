@@ -1078,7 +1078,7 @@ AFFILIATE_BOTS = {
     "Pooja Main Affiliate Bot":  "harharmahadev0c-21",
     "Keyword Link":              "keyword04-21",
     "Devil Affiliate Bot":       "saurabhrathore00-21",
-    "Swati Singh AFFILIATE BOT": "sehajdeepkaur-21",
+    # "Swati Singh AFFILIATE BOT": "sehajdeepkaur-21",
 }
 
 
