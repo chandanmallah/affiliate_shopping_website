@@ -601,7 +601,7 @@ def manual_add_product(request):
 
         link = AmazonLink.objects.create(
             product_url=product_url,
-            title=title[:200],
+            title=title,
             asin=asin,
         )
         product = Product.objects.create(
@@ -861,11 +861,16 @@ def convert_and_upsert(raw_url, tag):
     Returns (product, amazon_link, long_url, error) where `error` is None on
     success, or a human-readable string when something failed.
     """
-    long_url = clean_and_tag_url(raw_url, tag)
+    tagged = clean_and_tag_url(raw_url, tag)
 
-    asin = extract_asin(long_url)
+    asin = extract_asin(tagged)
     if not asin:
-        return None, None, long_url, "Could not extract a valid Amazon ASIN from the provided URL."
+        return None, None, tagged, "Could not extract a valid Amazon ASIN from the provided URL."
+
+    # Store a clean, canonical affiliate URL (keeps product_url short and tidy,
+    # and avoids overflowing the DB column with Amazon's tracking params).
+    netloc = urlparse(tagged).netloc or "www.amazon.in"
+    long_url = f"https://{netloc}/dp/{asin}?tag={tag}"
 
     product_data = fetch_product_from_creators_api(asin, tag)
     if not product_data:
@@ -881,12 +886,12 @@ def convert_and_upsert(raw_url, tag):
     amazon_link = AmazonLink.objects.filter(asin=asin, tag=tag).order_by("-id").first()
     if amazon_link:
         amazon_link.product_url = long_url            # refresh the affiliate link
-        amazon_link.title = fetched_title[:200]
+        amazon_link.title = fetched_title
         amazon_link.save()
     else:
         amazon_link = AmazonLink.objects.create(
             product_url=long_url,
-            title=fetched_title[:200],
+            title=fetched_title,
             asin=asin,
             tag=tag,
         )
@@ -970,7 +975,7 @@ def create_short_url(request):
 # Populates the converter page's "Affiliate bot" dropdown so the tag is
 # selected automatically when a bot name is chosen.
 AFFILIATE_BOTS = {
-    "ASH":             "ashfiyarajguru-21",
+    "Affiliate bot":             "ashfiyarajguru-21",
     "DH AFFILIATE BOT":          "banalibanerjee-21",
     "POOJA AFFILIATE BOT":       "alena01-21",
     "Rohin Affiliate Bot":       "lootlobhai-21",
