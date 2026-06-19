@@ -838,18 +838,50 @@ def redirect_short_url(request, shortcode):
 
 
 def extract_asin(url):
-    """Pull a 10-char Amazon ASIN out of a product URL, or return None."""
+    """
+    Pull a 10-char Amazon ASIN out of a product OR search/browse URL.
+    Handles /dp/, /gp/product/, asin=, hidden-keywords=, and the ASIN hidden
+    inside a search filter like  rh=p_78%3AB0FMS47419  ( %3A == ':' ).
+    """
+    from urllib.parse import unquote
+    u = unquote(url)  # decode %3A etc. so rh=p_78:ASIN is readable
+
     patterns = [
-        r'/(?:dp|gp/product|gp/aw/d|gp/aw/d|product)/([A-Z0-9]{10})',
+        r'/(?:dp|gp/product|gp/aw/d|product)/([A-Z0-9]{10})',
         r'/dp/([A-Z0-9]{10})',
         r'[?&](?:asin|ASIN)=([A-Z0-9]{10})',
         r'[?&]hidden-keywords=([A-Z0-9]{10})',
+        r'p_78[:=]([A-Z0-9]{10})',          # search filter: rh=p_78:ASIN
+        r'\bnode[:=]([A-Z0-9]{10})\b',       # some browse filters
     ]
     for pat in patterns:
-        m = re.search(pat, url)
+        m = re.search(pat, u)
         if m:
             return m.group(1)
     return None
+
+
+def extract_all_asins(url):
+    """
+    Return every distinct ASIN in a URL, in order — for search links that filter
+    on multiple products, e.g. rh=p_78%3AB0FMS47419%7Cp_78%3AB0XXXXXXXX.
+    Falls back to the single extract_asin result.
+    """
+    from urllib.parse import unquote
+    u = unquote(url)
+    found = []
+    for pat in (r'/(?:dp|gp/product|gp/aw/d|product)/([A-Z0-9]{10})',
+                r'p_78[:=]([A-Z0-9]{10})',
+                r'[?&](?:asin|ASIN)=([A-Z0-9]{10})',
+                r'[?&]hidden-keywords=([A-Z0-9]{10})'):
+        for m in re.finditer(pat, u):
+            if m.group(1) not in found:
+                found.append(m.group(1))
+    if not found:
+        one = extract_asin(url)
+        if one:
+            found.append(one)
+    return found
 
 
 def convert_and_upsert(raw_url, tag):
@@ -1111,24 +1143,36 @@ def rewrite_message_links(message, tag, link_type, request):
         full = token
         if not extract_asin(full):
             full = resolve_amazon_url(token)
-        # STEP 2 — make sure we now have a real product (ASIN present).
-        if not full or not extract_asin(full):
-            errors.append({"url": token, "reason": "Could not resolve link to a product."})
+        if not full:
+            errors.append({"url": token, "reason": "Could not resolve link."})
             continue
 
-        # STEP 3 — fetch + post the product to the site (one row per asin+tag).
-        product, amazon_link, long_url, error = convert_and_upsert(full, tag)
-        if error:
-            errors.append({"url": token, "reason": error})
+        # STEP 2 — collect every ASIN in the (expanded) URL. A normal product
+        # link has one; a search/listing link (…/s?…rh=p_78:ASIN…) may have several.
+        asins = extract_all_asins(full)
+        if not asins:
+            errors.append({"url": token, "reason": "No product (ASIN) found in link."})
             continue
 
-        if link_type == "page":
-            replacement = request.build_absolute_uri(f"/product/{amazon_link.slug}/")
-        else:  # "amazon" — re-tagged full Amazon URL (product still posted above)
-            replacement = amazon_link.product_url
+        # STEP 3 — fetch + post each product; build a replacement link per ASIN.
+        netloc = urlparse(full).netloc or "www.amazon.in"
+        reps = []
+        for asin in asins:
+            canonical = f"https://{netloc}/dp/{asin}?tag={tag}"
+            product, amazon_link, long_url, error = convert_and_upsert(canonical, tag)
+            if error:
+                errors.append({"url": token, "asin": asin, "reason": error})
+                continue
+            if link_type == "page":
+                reps.append(request.build_absolute_uri(f"/product/{amazon_link.slug}/"))
+            else:
+                reps.append(amazon_link.product_url)
+            items.append({"original": token, "asin": asin,
+                          "replacement": reps[-1], "title": product.title})
 
-        mapping[token] = replacement
-        items.append({"original": token, "replacement": replacement, "title": product.title})
+        if reps:
+            # One product -> one link; multiple -> newline-separated links.
+            mapping[token] = "\n".join(reps)
 
     # Apply longest tokens first so one URL isn't a prefix of another.
     converted = message
