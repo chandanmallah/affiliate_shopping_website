@@ -468,9 +468,10 @@ STRIP_CATEGORIES = [
 
 NON_AMAZON_SOURCES = ["flipkart", "myntra", "ajio"]
 
-HOMEPAGE_LIMIT = 30        # max Amazon cards on the homepage grid
-TRENDING_LIMIT = 12        # max cards in the "Trending Offers" (non-Amazon) section
-CATEGORY_PAGE_SIZE = 12    # cards per page on a filtered/category view
+PAGE_SIZE = 10             # cards per page (homepage Amazon grid + category views)
+HOMEPAGE_MAX = 120         # max Amazon cards the homepage will page through
+TRENDING_LIMIT = 12        # max cards in each marketplace (non-Amazon) section
+CATEGORY_PAGE_SIZE = PAGE_SIZE
 
 
 def derive_amazon_category(product_data):
@@ -538,6 +539,60 @@ def build_product_queryset(category=None, source=None, sources=None):
         .filter(id__in=amazon_ids + other_ids)
         .order_by("-created_at")
     )
+
+
+# ─────────────────────────────────────────────────────────────
+# CATALOG CACHING  (cuts repeated dedup queries; default LocMemCache)
+# ─────────────────────────────────────────────────────────────
+HOME_CACHE_KEY = "catalog:home_v1"
+HOME_CACHE_TTL = 120          # seconds
+FILTER_CACHE_TTL = 60         # seconds
+
+HOMEPAGE_MARKETPLACES = [
+    ("flipkart", "Flipkart", "Big Billion drops & everyday low prices"),
+    ("myntra",   "Myntra",   "Fashion & lifestyle offers"),
+    ("ajio",     "Ajio",     "Trendy styles, hand-picked deals"),
+]
+
+
+def get_homepage_data():
+    """
+    Cached homepage payload: the Amazon grid + each marketplace section.
+    Evaluates the (expensive) dedup queries once per HOME_CACHE_TTL instead
+    of on every request. Products keep their select_related('link') so the
+    template never fires per-card queries.
+    """
+    data = cache.get(HOME_CACHE_KEY)
+    if data is None:
+        data = {
+            "amazon": list(build_product_queryset(source="amazon")[:HOMEPAGE_MAX]),
+            "marketplaces": [
+                {"key": k, "label": label, "tagline": tagline,
+                 "products": list(build_product_queryset(source=k)[:TRENDING_LIMIT])}
+                for (k, label, tagline) in HOMEPAGE_MARKETPLACES
+            ],
+        }
+        cache.set(HOME_CACHE_KEY, data, HOME_CACHE_TTL)
+    return data
+
+
+def get_filtered_products(category, source):
+    """
+    Cached, fully-deduped product list for a category/source filter, so the
+    two dedup sub-queries run once per FILTER_CACHE_TTL rather than per page.
+    Returns a list (paginate it with Paginator).
+    """
+    key = "catalog:filter:" + (category or "-").lower() + ":" + (source or "-").lower()
+    items = cache.get(key)
+    if items is None:
+        items = list(build_product_queryset(category=category or None, source=source or None))
+        cache.set(key, items, FILTER_CACHE_TTL)
+    return items
+
+
+def bust_catalog_cache():
+    """Drop the homepage cache so newly added/converted products show at once."""
+    cache.delete(HOME_CACHE_KEY)
 
 
 def add_product_page(request):
@@ -619,6 +674,7 @@ def manual_add_product(request):
         )
 
         ctx["success"] = f"Added “{title}” ({source.title()}). Slug: {link.slug}"
+        bust_catalog_cache()   # show the new product on the homepage immediately
         return render(request, "products/manual_add.html", ctx)
 
     return render(request, "products/manual_add.html", ctx)
@@ -635,11 +691,11 @@ def product_list(request):
 
     # ── FILTERED / CATEGORY VIEW (paginated, infinite-scroll enabled) ──
     if is_filtered:
-        qs = build_product_queryset(
+        items = get_filtered_products(
             category=None if cat_is_all else category,
             source=source or None,
         )
-        paginator = Paginator(qs, CATEGORY_PAGE_SIZE)
+        paginator = Paginator(items, CATEGORY_PAGE_SIZE)
         page_obj = paginator.get_page(page_number)
 
         # Preserve the active filter when the JS requests the next page.
@@ -668,34 +724,27 @@ def product_list(request):
             "trending_products": [],
         })
 
-    # ── HOMEPAGE (capped grid, no infinite scroll, plus trending section) ──
-    # On the homepage an XHR "next page" request has nothing more to load.
+    # ── HOMEPAGE (Amazon grid paginated 10/page + marketplace sections) ──
+    home = get_homepage_data()   # cached (HOME_CACHE_TTL); busted on new products
+    paginator = Paginator(home["amazon"], PAGE_SIZE)
+    page_obj = paginator.get_page(page_number)
+
+    # Infinite-scroll "next page" request -> return just the next 10 cards.
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return HttpResponse("")
-
-    homepage_products = list(build_product_queryset(source="amazon")[:HOMEPAGE_LIMIT])
-
-    # Per-marketplace sections (always shown on the homepage; each renders its
-    # own branded banner and either its offers or an empty-state note).
-    marketplaces = [
-        {"key": "flipkart", "label": "Flipkart",
-         "tagline": "Big Billion drops & everyday low prices",
-         "products": list(build_product_queryset(source="flipkart")[:TRENDING_LIMIT])},
-        {"key": "myntra", "label": "Myntra",
-         "tagline": "Fashion & lifestyle offers",
-         "products": list(build_product_queryset(source="myntra")[:TRENDING_LIMIT])},
-        {"key": "ajio", "label": "Ajio",
-         "tagline": "Trendy styles, hand-picked deals",
-         "products": list(build_product_queryset(source="ajio")[:TRENDING_LIMIT])},
-    ]
+        try:
+            if int(page_number) > paginator.num_pages:
+                return HttpResponse("")
+        except (TypeError, ValueError):
+            pass
+        return render(request, "products/product_cards_partial.html", {"page_obj": page_obj})
 
     return render(request, "products/product_list.html", {
-        "page_obj": homepage_products,
+        "page_obj": page_obj,
         "categories": STRIP_CATEGORIES,
         "active_category": "All Deals",
         "is_filtered": False,
         "filter_qs": "",
-        "marketplaces": marketplaces,
+        "marketplaces": home["marketplaces"],
     })
 
 
@@ -950,6 +999,7 @@ def convert_and_upsert(raw_url, tag):
             category_rankings=product_data.get("category_rankings", []),
         ),
     )
+    bust_catalog_cache()   # new/updated product -> refresh homepage
     return product, amazon_link, long_url, None
 
 
@@ -1376,7 +1426,7 @@ def contact(request):
                     subject=f"[Contact] {cd['subject']}",
                     message=f"From: {cd['name']} <{cd['email']}>\n\n{cd['message']}",
                     from_email=None,  # uses DEFAULT_FROM_EMAIL
-                    recipient_list=["support@dealsforfree.in"],
+                    recipient_list=["support@Dealhunts.in"],
                     fail_silently=True,
                 )
             except Exception:

@@ -173,7 +173,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="title-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
             Support
           </h3>
-          <a href="mailto:support@DEALHUNT.in" class="support-email">support@DEALHUNT.in</a>
+          <a href="mailto:support@dealsforfree.in" class="support-email">support@dealsforfree.in</a>
         </div>
       </div>
 
@@ -198,7 +198,7 @@
       let currentPage = 1;
       const IS_FILTERED = {% if is_filtered %}true{% else %}false{% endif %};
       const FILTER_QS = "{{ filter_qs|escapejs }}";
-      let hasNextPage = {% if is_filtered and page_obj.has_next %}true{% else %}false{% endif %};
+      let hasNextPage = {% if page_obj.has_next %}true{% else %}false{% endif %};
       let isFetchingBatch = false;
       const gridContainer = document.getElementById('productGridContainer');
       const scrollLoader  = document.getElementById('scrollLoader');
