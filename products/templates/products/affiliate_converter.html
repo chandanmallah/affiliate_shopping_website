@@ -25,6 +25,10 @@
     .cv-submit { width:100%; margin-top:.5rem; padding:.95rem 1rem; font:600 1rem/1 inherit; color:#fff; background:#ff4a7a; border:none; border-radius:12px; cursor:pointer; }
     .cv-submit:hover { transform:translateY(-1px); box-shadow:0 8px 18px rgba(255,74,122,.35); }
     .cv-submit:disabled { opacity:.65; cursor:default; transform:none; box-shadow:none; }
+    .cv-btn-row { display:flex; gap:.6rem; margin-top:.5rem; }
+    .cv-btn-row .cv-submit { margin-top:0; flex:1; }
+    .cv-clear { padding:.95rem 1.2rem; border:1px solid #d7dbe2; background:#fff; color:#374151; border-radius:12px; font:600 1rem/1 inherit; cursor:pointer; }
+    .cv-clear:hover { background:#f3f4f6; }
 
     .cv-radio-row { display:flex; gap:.75rem; flex-wrap:wrap; }
     .cv-radio { flex:1; min-width:200px; display:flex; gap:.6rem; align-items:flex-start; border:1px solid #d7dbe2; border-radius:12px; padding:.75rem .9rem; cursor:pointer; }
@@ -75,7 +79,10 @@
           </select>
         </div>
 
-        <button type="submit" id="convertBtn" class="cv-submit cta-btn">Convert Message</button>
+        <div class="cv-btn-row">
+          <button type="submit" id="convertBtn" class="cv-submit cta-btn">Convert Message</button>
+          <button type="button" id="clearBtn" class="cv-clear">Clear</button>
+        </div>
       </form>
 
       <div id="error" class="cv-error"></div>
@@ -162,6 +169,16 @@
         this.textContent = 'Copied!';
         setTimeout(() => { this.textContent = 'Copy message'; }, 1500);
       });
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', function () {
+      document.getElementById('message').value = '';
+      document.getElementById('outMsg').value = '';
+      document.getElementById('summary').textContent = '';
+      document.getElementById('warn').style.display = 'none';
+      resEl.className = 'cv-result';
+      errEl.className = 'cv-error';
+      document.getElementById('message').focus();
     });
   </script>
 </body>

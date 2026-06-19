@@ -1057,7 +1057,7 @@ def create_short_url(request):
 # Populates the converter page's "Affiliate bot" dropdown so the tag is
 # selected automatically when a bot name is chosen.
 AFFILIATE_BOTS = {
-    "Affiliate bot":             "ashfiyarajguru-21",
+    "ASH":             "ashfiyarajguru-21",
     "DH AFFILIATE BOT":          "banalibanerjee-21",
     "POOJA AFFILIATE BOT":       "alena01-21",
     "Rohin Affiliate Bot":       "lootlobhai-21",
@@ -1163,6 +1163,40 @@ def resolve_amazon_url(url):
         return None
 
 
+def upsert_search_link(search_url, tag):
+    """
+    Fallback for Amazon links that have NO ASIN (keyword search links).
+    We can't fetch product data, so we just re-tag the URL and post a minimal
+    product whose 'Buy on Amazon' points at the tagged search URL.
+    Reuses an existing row for the same tagged URL so it doesn't duplicate.
+    """
+    long_url = clean_and_tag_url(search_url, tag)
+
+    # Derive a readable title from the search keywords (?k=...).
+    kw = parse_qs(urlparse(long_url).query).get("k", [""])[0]
+    title = (kw.replace("+", " ").strip() or "Amazon search").title()
+
+    link = AmazonLink.objects.filter(product_url=long_url).order_by("-id").first()
+    if link:
+        link.title = title
+        link.tag = tag
+        link.save()
+    else:
+        link = AmazonLink.objects.create(product_url=long_url, title=title, asin=None, tag=tag)
+
+    product, _ = Product.objects.update_or_create(
+        link=link,
+        defaults=dict(
+            source="amazon",
+            title=title,
+            category="",
+            price_display="View options on Amazon",
+        ),
+    )
+    bust_catalog_cache()
+    return product, link, long_url
+
+
 def rewrite_message_links(message, tag, link_type, request):
     """
     Find every Amazon link in `message` and replace it, leaving all other text
@@ -1188,46 +1222,87 @@ def rewrite_message_links(message, tag, link_type, request):
         if not is_amazon_host(parsed.netloc):
             continue  # leave non-Amazon links (forms, etc.) untouched
 
-        # STEP 1 — always expand the link to its final URL first. Handles
-        # amzn.to / link.amazon / a.co / regional shorteners and any redirect.
-        full = token
-        if not extract_asin(full):
-            full = resolve_amazon_url(token)
-        if not full:
-            errors.append({"url": token, "reason": "Could not resolve link."})
+        # Each link is isolated: any failure is recorded and we move on.
+        try:
+            # STEP 1 — expand the link to its final URL first (amzn.to /
+            # link.amazon / a.co / regional shorteners and any redirect).
+            full = token
+            if not extract_asin(full):
+                full = resolve_amazon_url(token)
+            if not full:
+                errors.append({"url": token, "reason": "Could not resolve link."})
+                continue
+
+            # STEP 2 — collect every ASIN. A product link has one; a filtered
+            # search link may have several; a keyword search link has none.
+            asins = extract_all_asins(full)
+            netloc = urlparse(full).netloc or "www.amazon.in"
+            reps = []
+
+            if asins:
+                for asin in asins:
+                    canonical = f"https://{netloc}/dp/{asin}?tag={tag}"
+                    product, amazon_link, long_url, error = convert_and_upsert(canonical, tag)
+                    if error:
+                        errors.append({"url": token, "asin": asin, "reason": error})
+                        continue
+                    if link_type == "page":
+                        reps.append(request.build_absolute_uri(f"/product/{amazon_link.slug}/"))
+                    else:
+                        reps.append(amazon_link.product_url)
+                    items.append({"original": token, "asin": asin,
+                                  "replacement": reps[-1], "title": product.title})
+            else:
+                product, amazon_link, long_url = upsert_search_link(full, tag)
+                reps.append(request.build_absolute_uri(f"/product/{amazon_link.slug}/")
+                            if link_type == "page" else long_url)
+                items.append({"original": token, "asin": None,
+                              "replacement": reps[-1], "title": product.title})
+
+            if reps:
+                mapping[token] = "\n".join(reps)
+        except Exception as e:
+            errors.append({"url": token, "reason": f"Unexpected error: {e}"})
             continue
 
-        # STEP 2 — collect every ASIN in the (expanded) URL. A normal product
-        # link has one; a search/listing link (…/s?…rh=p_78:ASIN…) may have several.
-        asins = extract_all_asins(full)
-        if not asins:
-            errors.append({"url": token, "reason": "No product (ASIN) found in link."})
+    # ── Bare ASINs typed directly (not inside a URL), e.g. "B0FMS47419" ──
+    # Must be a standalone 10-char token containing at least one digit AND one
+    # letter (so plain words / phone numbers aren't mistaken for ASINs).
+    asin_token_re = re.compile(r'(?<![\w/-])([A-Z0-9]{10})(?![\w/-])')
+    for m in asin_token_re.finditer(message):
+        tok = m.group(1)
+        if tok in processed:
             continue
-
-        # STEP 3 — fetch + post each product; build a replacement link per ASIN.
-        netloc = urlparse(full).netloc or "www.amazon.in"
-        reps = []
-        for asin in asins:
-            canonical = f"https://{netloc}/dp/{asin}?tag={tag}"
+        if not (re.search(r'[0-9]', tok) and re.search(r'[A-Z]', tok)):
+            continue
+        processed.add(tok)
+        try:
+            canonical = f"https://www.amazon.in/dp/{tok}?tag={tag}"
             product, amazon_link, long_url, error = convert_and_upsert(canonical, tag)
             if error:
-                errors.append({"url": token, "asin": asin, "reason": error})
+                errors.append({"url": tok, "reason": error})
                 continue
-            if link_type == "page":
-                reps.append(request.build_absolute_uri(f"/product/{amazon_link.slug}/"))
-            else:
-                reps.append(amazon_link.product_url)
-            items.append({"original": token, "asin": asin,
-                          "replacement": reps[-1], "title": product.title})
+            rep = (request.build_absolute_uri(f"/product/{amazon_link.slug}/")
+                   if link_type == "page" else amazon_link.product_url)
+            mapping[tok] = rep
+            items.append({"original": tok, "asin": tok,
+                          "replacement": rep, "title": product.title})
+        except Exception as e:
+            errors.append({"url": tok, "reason": f"Unexpected error: {e}"})
+            continue
 
-        if reps:
-            # One product -> one link; multiple -> newline-separated links.
-            mapping[token] = "\n".join(reps)
-
-    # Apply longest tokens first so one URL isn't a prefix of another.
+    # ── Apply replacements ──
     converted = message
-    for token in sorted(mapping, key=len, reverse=True):
+    # URLs first, longest-first (so one URL isn't a prefix of another).
+    url_keys = sorted((k for k in mapping if k.startswith("http")), key=len, reverse=True)
+    for token in url_keys:
         converted = converted.replace(token, mapping[token])
+    # Bare ASINs with word boundaries, so we don't touch an ASIN that now sits
+    # inside an already-inserted /dp/ASIN URL.
+    for token in (k for k in mapping if not k.startswith("http")):
+        rep = mapping[token]
+        converted = re.sub(r'(?<![\w/-])' + re.escape(token) + r'(?![\w/-])',
+                           lambda _m, r=rep: r, converted)
 
     return converted, items, errors
 
@@ -1426,7 +1501,7 @@ def contact(request):
                     subject=f"[Contact] {cd['subject']}",
                     message=f"From: {cd['name']} <{cd['email']}>\n\n{cd['message']}",
                     from_email=None,  # uses DEFAULT_FROM_EMAIL
-                    recipient_list=["support@Dealhunts.in"],
+                    recipient_list=["support@dealsforfree.in"],
                     fail_silently=True,
                 )
             except Exception:
