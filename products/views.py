@@ -599,6 +599,12 @@ def add_product_page(request):
     return render(request, 'products/add_product.html')
 
 
+def favicon(request):
+    """Browser tab icon for every page — redirects /favicon.ico to the logo."""
+    from django.templatetags.static import static
+    return redirect(static('products/images/logo.png'))
+
+
 def _parse_amount(text):
     """Best-effort numeric extraction from a price string like '₹1,299.00'."""
     if not text:
@@ -1501,7 +1507,7 @@ def contact(request):
                     subject=f"[Contact] {cd['subject']}",
                     message=f"From: {cd['name']} <{cd['email']}>\n\n{cd['message']}",
                     from_email=None,  # uses DEFAULT_FROM_EMAIL
-                    recipient_list=["support@dealsforfree.in"],
+                    recipient_list=["support@DEALHUNTS.in"],
                     fail_silently=True,
                 )
             except Exception:

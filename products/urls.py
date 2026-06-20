@@ -12,6 +12,7 @@ from .views import (
 
 urlpatterns = [
     path('', views.product_list, name='product_list'),
+    path('favicon.ico', views.favicon, name='favicon'),
     path('product/<slug:slug>/', views.product_detail, name='product_detail'),
 
     path('show-data/', views.show_data_page, name='show-data-page'),
@@ -38,12 +39,12 @@ urlpatterns = [
     # Affiliate link converter (UNLISTED — no nav shortcut; visit directly)
     path('convert/', views.affiliate_converter, name='affiliate-converter'),
     path('api/convert/', views.convert_affiliate_link, name='api-convert'),
+    path('api/convert-message/', views.convert_message, name='api-convert-message'),
     path('api/products/cleanup/', EnforceCatalogRetentionAPIView.as_view(), name='api-catalog-cleanup'),
     path('privacy-policy/', views.privacy_policy, name='privacy-policy'),
 
     path('terms/',   views.terms,   name='terms'),
     path('contact/', views.contact, name='contact'),    
-    path('api/convert-message/', views.convert_message, name='api-convert-message'),
 
     # Fast Redirect Engine Rule  (catch-all — keep this LAST)
     path("<str:code>/", views.redirect_short, name='redirect'),
