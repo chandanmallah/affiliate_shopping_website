@@ -4,7 +4,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>{{ product.link.title }} - DEALHUNT</title>
+  <title>{{ product.link.title }}  DEALHUNTS</title>
+
+  {# ===== Link preview (WhatsApp / Telegram / Facebook / Twitter) ===== #}
+  <meta property="og:type" content="product" />
+  <meta property="og:site_name" content="DEAL HUNT" />
+  <meta property="og:title" content="{{ product.title|default:product.link.title }}" />
+  <meta property="og:description" content="{% if product.price_display %}{{ product.price_display }}{% if product.mrp_display %} (was {{ product.mrp_display }}){% endif %} — {% endif %}{{ product.description|default:'View this deal on DEAL HUNT.'|striptags|truncatechars:160 }}" />
+  {% if product.image_url %}<meta property="og:image" content="{{ product.image_url }}" />
+  <meta property="og:image:alt" content="{{ product.link.title }}" />{% endif %}
+  <meta property="og:url" content="{{ request.build_absolute_uri }}" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{{ product.title|default:product.link.title }}" />
+  <meta name="twitter:description" content="{% if product.price_display %}{{ product.price_display }} — {% endif %}{{ product.description|default:'View this deal on DEAL HUNT.'|striptags|truncatechars:160 }}" />
+  {% if product.image_url %}<meta name="twitter:image" content="{{ product.image_url }}" />{% endif %}
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap">
@@ -26,7 +40,7 @@
   <div class="header-stack glass-panel">
     <header>
       <a href="/" class="logo-container">
-        <h1 class="logo-text text-foreground">DEAL<span>HUNT</span></h1>
+        <h1 class="logo-text text-foreground">DEALS<span>FORFREE</span></h1>
       </a>
 
       <div class="search-bar-wrapper">
@@ -181,11 +195,11 @@
     <div class="pdp-disclaimers">
       <div class="pdp-disclaimer">
         <span class="pdp-disclaimer-tag">Disclaimer</span>
-        <p>Product prices and availability are accurate as of the date and time indicated and are subject to change. Any price and availability information displayed on Amazon.in at the time of purchase will apply to the purchase of this product. As an Amazon Associate, DEALHUNT earns from qualifying purchases.</p>
+        <p>Product prices and availability are accurate as of the date and time indicated and are subject to change. Any price and availability information displayed on Amazon.in at the time of purchase will apply to the purchase of this product. As an Amazon Associate, DEALSFORFREE earns from qualifying purchases.</p>
       </div>
       <div class="pdp-disclaimer">
         <span class="pdp-disclaimer-tag">Content disclaimer</span>
-        <p>Certain content that appears on this site comes from Amazon Seller Services Private Limited. This content is provided “as is” and is subject to change or removal at any time. DEALHUNT is not responsible for the accuracy of product information shown.</p>
+        <p>Certain content that appears on this site comes from Amazon Seller Services Private Limited. This content is provided “as is” and is subject to change or removal at any time. DEALSFORFREE is not responsible for the accuracy of product information shown.</p>
       </div>
     </div>
   </main>
@@ -195,11 +209,11 @@
     <div class="footer-container">
       <div class="footer-column brand-info">
         <div class="footer-logo">
-          <span class="logo-fallback-text font-display">DEALS<span>HUNT</span></span>
+          <span class="logo-fallback-text font-display">DEALS<span>FORFREE</span></span>
         </div>
         <h3 class="column-title">About Us</h3>
         <p class="about-text">
-          At DEALHUNT, we strive to make your shopping experience cheerful by providing deals across a wide range of categories. We work with the best e-commerce companies and search the internet to find and surface exclusive coupons and special discounts at your favourite online stores.
+          At DEALSFORFREE, we strive to make your shopping experience cheerful by providing deals across a wide range of categories. We work with the best e-commerce companies and search the internet to find and surface exclusive coupons and special discounts at your favourite online stores.
         </p>
       </div>
 
@@ -222,15 +236,15 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="title-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
             Support
           </h3>
-          <a href="mailto:support@DEALHUNT.in" class="support-email">support@DEALHUNT.in</a>
+          <a href="mailto:support@dealsforfree.in" class="support-email">support@dealsforfree.in</a>
         </div>
       </div>
     </div>
 
     <div class="footer-bottom">
-      <div class="copyright-row">&copy; 2026 DEALHUNT. All Rights Reserved.</div>
+      <div class="copyright-row">&copy; 2026 DEALHUNTS. All Rights Reserved.</div>
       <p class="admin-notice">
-        <strong>Disclaimer:</strong> DEALHUNT is a participant in the Amazon Associates Program, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to amazon.in. All links generated by the tool are affiliate links and we may earn a commission from qualifying purchases.
+        <strong>Disclaimer:</strong> DEALSFORFREE is a participant in the Amazon Associates Program, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to amazon.in. All links generated by the tool are affiliate links and we may earn a commission from qualifying purchases.
       </p>
     </div>
   </footer>
