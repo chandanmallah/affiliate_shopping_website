@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-g+7vp^wjgnkd20ewfzz!ijlm&ndn=prhf)bzu1%fb)oku^_0)f'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = ['*']
@@ -34,6 +34,8 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
+
 
 # Application definition
 
@@ -115,6 +117,9 @@ DATABASES = {
         'PORT': config('DB_PORT'),
     }
 }
+
+DATABASES["default"]["CONN_MAX_AGE"] = 60          # reuse connection for 60s
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
 
 # Password validation
