@@ -121,11 +121,11 @@ DATABASES = {
 DATABASES["default"]["CONN_MAX_AGE"] = 60          # reuse connection for 60s
 DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
-LOGGING = {
-    "version": 1,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "loggers": {"django.db.backends": {"handlers": ["console"], "level": "DEBUG"}},
-}
+# LOGGING = {
+#     "version": 1,
+#     "handlers": {"console": {"class": "logging.StreamHandler"}},
+#     "loggers": {"django.db.backends": {"handlers": ["console"], "level": "DEBUG"}},
+# }
 
 
 # Password validation
