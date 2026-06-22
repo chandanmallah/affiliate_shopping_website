@@ -89,6 +89,12 @@
     </div>
 
     {% if not is_filtered %}
+    <div style="text-align:center; margin-top:1.75rem;">
+      <a href="/?source=amazon" class="cta-btn" style="display:inline-block; background:#ff4a7a; color:#fff; padding:.85rem 2rem; border-radius:999px; font-weight:700; text-decoration:none;">See all Amazon deals &rarr;</a>
+    </div>
+    {% endif %}
+
+    {% if not is_filtered %}
     {% for m in marketplaces %}
     <div class="marketplace-banner mkt-{{ m.key }}" style="margin-top: 4rem; border-radius: 16px; padding: 1.4rem 1.6rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; color:#fff;
       {% if m.key == 'flipkart' %}background:linear-gradient(135deg,#2874f0,#1a5fd0);{% elif m.key == 'myntra' %}background:linear-gradient(135deg,#ff3f6c,#d92e57);{% elif m.key == 'ajio' %}background:linear-gradient(135deg,#2f2f2f,#000);{% else %}background:linear-gradient(135deg,#555,#333);{% endif %}">

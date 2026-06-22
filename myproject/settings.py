@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-g+7vp^wjgnkd20ewfzz!ijlm&ndn=prhf)bzu1%fb)oku^_0)f'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = ['*']
@@ -120,6 +120,12 @@ DATABASES = {
 
 DATABASES["default"]["CONN_MAX_AGE"] = 60          # reuse connection for 60s
 DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+
+LOGGING = {
+    "version": 1,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {"django.db.backends": {"handlers": ["console"], "level": "DEBUG"}},
+}
 
 
 # Password validation
