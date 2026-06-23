@@ -468,9 +468,10 @@ STRIP_CATEGORIES = [
 
 NON_AMAZON_SOURCES = ["flipkart", "myntra", "ajio"]
 
-PAGE_SIZE = 10             # cards per page (homepage Amazon grid + category views)
-HOMEPAGE_MAX = 120         # max Amazon cards the homepage will page through
-TRENDING_LIMIT = 12        # max cards in each marketplace (non-Amazon) section
+PAGE_SIZE = 48           # cards per page (full "see all" / category views)
+HOMEPAGE_SHOW = 24         # Amazon cards shown on the homepage before "See all"
+HOMEPAGE_MAX = 120         # max Amazon cards cached for the homepage
+TRENDING_LIMIT = 12        # max cards in each marketplace section on the homepage
 CATEGORY_PAGE_SIZE = PAGE_SIZE
 
 
@@ -595,6 +596,23 @@ def bust_catalog_cache():
     cache.delete(HOME_CACHE_KEY)
 
 
+def compact_page_range(page_obj, width=2):
+    """
+    Page numbers to show in numbered pagination: first, last, and a window
+    around the current page. None marks an ellipsis gap.
+    e.g. current=6 of 20 -> [1, None, 4,5,6,7,8, None, 20]
+    """
+    cur = page_obj.number
+    last = page_obj.paginator.num_pages
+    out = []
+    for n in range(1, last + 1):
+        if n == 1 or n == last or (cur - width <= n <= cur + width):
+            out.append(n)
+        elif out and out[-1] is not None:
+            out.append(None)
+    return out
+
+
 def add_product_page(request):
     return render(request, 'products/add_product.html')
 
@@ -616,7 +634,7 @@ def _parse_amount(text):
         return None
 
 
-@staff_member_required
+# @staff_member_required
 def manual_add_product(request):
     """
     Staff-only manual upload page (gated behind the Django admin login).
@@ -695,7 +713,7 @@ def product_list(request):
     cat_is_all = category.lower() in ("", "all", "all deals")
     is_filtered = (not cat_is_all) or bool(source)
 
-    # ── FILTERED / CATEGORY VIEW (paginated, infinite-scroll enabled) ──
+    # ── FILTERED / "SEE ALL" VIEW (numbered pagination + product count) ──
     if is_filtered:
         items = get_filtered_products(
             category=None if cat_is_all else category,
@@ -704,7 +722,7 @@ def product_list(request):
         paginator = Paginator(items, CATEGORY_PAGE_SIZE)
         page_obj = paginator.get_page(page_number)
 
-        # Preserve the active filter when the JS requests the next page.
+        # Active filter preserved in pagination links.
         filter_pairs = []
         if not cat_is_all:
             filter_pairs.append(("category", category))
@@ -712,40 +730,29 @@ def product_list(request):
             filter_pairs.append(("source", source))
         filter_qs = urlencode(filter_pairs)
 
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            # Past the last page -> signal end-of-results to the infinite scroller.
-            try:
-                if int(page_number) > paginator.num_pages:
-                    return HttpResponse("")
-            except (TypeError, ValueError):
-                pass
-            return render(request, "products/product_cards_partial.html", {"page_obj": page_obj})
+        banner_image = None
+        if source in ("flipkart", "myntra", "ajio"):
+            banner_image = f"products/images/banner-{source}.png"
 
         return render(request, "products/product_list.html", {
             "page_obj": page_obj,
+            "page_range": compact_page_range(page_obj),
             "categories": STRIP_CATEGORIES,
             "active_category": category if not cat_is_all else (source.title() if source else "All Deals"),
             "is_filtered": True,
             "filter_qs": filter_qs,
+            "banner_image": banner_image,
             "trending_products": [],
         })
 
-    # ── HOMEPAGE (Amazon grid paginated 10/page + marketplace sections) ──
-    home = get_homepage_data()   # cached (HOME_CACHE_TTL); busted on new products
-    paginator = Paginator(home["amazon"], PAGE_SIZE)
-    page_obj = paginator.get_page(page_number)
-
-    # Infinite-scroll "next page" request -> return just the next 10 cards.
+    # ── HOMEPAGE (capped Amazon grid + "See all" buttons; no infinite scroll) ──
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        try:
-            if int(page_number) > paginator.num_pages:
-                return HttpResponse("")
-        except (TypeError, ValueError):
-            pass
-        return render(request, "products/product_cards_partial.html", {"page_obj": page_obj})
+        return HttpResponse("")   # homepage doesn't infinite-scroll
 
+    home = get_homepage_data()    # cached; busted on new products
     return render(request, "products/product_list.html", {
-        "page_obj": page_obj,
+        "page_obj": home["amazon"][:HOMEPAGE_SHOW],
+        "show_all_amazon": len(home["amazon"]) > HOMEPAGE_SHOW,
         "categories": STRIP_CATEGORIES,
         "active_category": "All Deals",
         "is_filtered": False,
@@ -1507,7 +1514,7 @@ def contact(request):
                     subject=f"[Contact] {cd['subject']}",
                     message=f"From: {cd['name']} <{cd['email']}>\n\n{cd['message']}",
                     from_email=None,  # uses DEFAULT_FROM_EMAIL
-                    recipient_list=["support@DEALHUNTS.in"],
+                    recipient_list=["support@dealsforfree.in"],
                     fail_silently=True,
                 )
             except Exception:

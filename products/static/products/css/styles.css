@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap");
 
 :root {
   --radius: 1.25rem;
@@ -60,7 +60,7 @@
   --shadow-glow: 0 8px 28px rgba(238, 42, 123, 0.30);
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Arvo", Georgia, "Times New Roman", serif;
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
 }
 
 .dark {
@@ -286,10 +286,10 @@ nav {
 /* ---------- Hero ---------- */
 .hero-section {
   max-width: 1360px;
-  margin: 2rem auto 0;
+  margin: 1rem auto 0;
   width: calc(100% - 4rem);
   border-radius: var(--radius-2xl);
-  padding: 4rem 3rem;
+  padding: 2rem 2.5rem;
 }
 .hero-tag {
   display: inline-block;
@@ -320,7 +320,7 @@ nav {
 /* ---------- Affiliate disclosure (Amazon Associates compliance) ---------- */
 .affiliate-banner {
   max-width: 1360px;
-  margin: 1.5rem auto 0;
+  margin: 0.85rem auto 0;
   width: calc(100% - 4rem);
   background: var(--color-secondary);
   border: 1px solid var(--color-border);
@@ -367,19 +367,19 @@ nav {
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
-  padding: 3.5rem 2rem;
+  padding: 1.75rem 2rem;
 }
 .section-title-strip h2 {
   font-size: 1.5rem;
   font-weight: 800;
   color: var(--color-foreground);
-  margin: 0 0 2rem;
+  margin: 0 0 1.1rem;
 }
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.4rem;
 }
 
 /* ---------- Cards ---------- */
@@ -575,10 +575,10 @@ nav {
 .newsletter-box {
   background: var(--color-accent);
   border-radius: var(--radius-2xl);
-  padding: 3.5rem;
+  padding: 2.25rem;
   text-align: center;
   max-width: 850px;
-  margin: 5rem auto 1rem;
+  margin: 2.5rem auto 1rem;
 }
 .newsletter-box h3 {
   font-size: 1.6rem;
@@ -625,7 +625,7 @@ nav {
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
   padding: 1.5rem;
-  margin-top: 5rem;
+  margin-top: 2.5rem;
   display: flex;
   gap: 1.25rem;
   align-items: flex-start;
@@ -650,7 +650,7 @@ nav {
 
 .faq-container {
   max-width: 950px;
-  margin: 5rem auto 0;
+  margin: 2.5rem auto 0;
 }
 .faq-item {
   background: var(--color-card);
@@ -679,8 +679,8 @@ nav {
 .site-footer {
   background-color: var(--color-card);
   border-top: 1px solid var(--color-border);
-  padding: 4.5rem 2rem 2.5rem;
-  margin-top: 4rem;
+  padding: 2.75rem 2rem 2rem;
+  margin-top: 2.5rem;
 }
 .footer-container {
   max-width: 1350px;

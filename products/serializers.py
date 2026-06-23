@@ -24,3 +24,6 @@ class ProductSerializer(serializers.ModelSerializer):
         amazon_link = AmazonLink.objects.create(**link_data)
         product = Product.objects.create(link=amazon_link, **validated_data)
         return product
+    
+
+
