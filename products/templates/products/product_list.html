@@ -36,7 +36,7 @@
       </div>
 
       <nav>
-        <a href="#" class="nav-link">Top Picks</a>
+        <!-- <a href="#" class="nav-link">Top Picks</a> -->
         <a href="#" class="nav-link">Live Tracker</a>
       
         {% if user.is_authenticated %}
@@ -80,6 +80,12 @@
       <h2 class="font-display">{% if is_filtered %}{{ active_category }}{% else %}Active Limited-Time Drops{% endif %}</h2>
     </div>
 
+    {% if is_filtered %}
+    <p style="color:#6b7280; font-size:.9rem; margin:-0.5rem 0 1.25rem;">
+      Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} {{ active_category }} deal{{ page_obj.paginator.count|pluralize }}
+    </p>
+    {% endif %}
+
     <section class="product-grid" id="productGridContainer">
       {% include 'products/product_cards_partial.html' %}
     </section>
@@ -87,6 +93,30 @@
     <div class="scroll-loader" id="scrollLoader">
       <div class="loader-ring"></div>
     </div>
+
+    {% if is_filtered and page_obj.paginator.num_pages > 1 %}
+    <nav class="pagination-nav" aria-label="Pagination" style="display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:6px; margin:1.5rem 0 1rem;">
+      {% if page_obj.has_previous %}
+        <a href="?{{ filter_qs }}&page={{ page_obj.previous_page_number }}" style="padding:.5rem .8rem; border:1px solid #d7dbe2; border-radius:8px; text-decoration:none; color:#374151; font-weight:600;">&lsaquo; Prev</a>
+      {% else %}
+        <span style="padding:.5rem .8rem; border:1px solid #eef0f4; border-radius:8px; color:#c4c8cf;">&lsaquo; Prev</span>
+      {% endif %}
+      {% for num in page_range %}
+        {% if num is None %}
+          <span style="padding:.5rem .4rem; color:#9aa0aa;">…</span>
+        {% elif num == page_obj.number %}
+          <span style="padding:.5rem .85rem; border-radius:8px; background:#ff4a7a; color:#fff; font-weight:700;">{{ num }}</span>
+        {% else %}
+          <a href="?{{ filter_qs }}&page={{ num }}" style="padding:.5rem .85rem; border:1px solid #d7dbe2; border-radius:8px; text-decoration:none; color:#374151; font-weight:600;">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+        <a href="?{{ filter_qs }}&page={{ page_obj.next_page_number }}" style="padding:.5rem .8rem; border:1px solid #d7dbe2; border-radius:8px; text-decoration:none; color:#374151; font-weight:600;">Next &rsaquo;</a>
+      {% else %}
+        <span style="padding:.5rem .8rem; border:1px solid #eef0f4; border-radius:8px; color:#c4c8cf;">Next &rsaquo;</span>
+      {% endif %}
+    </nav>
+    {% endif %}
 
     {% if not is_filtered %}
     <div style="text-align:center; margin-top:1.75rem;">
@@ -112,7 +142,7 @@
       {% include 'products/product_cards_partial.html' with page_obj=m.products %}
     </section>
     {% else %}
-    <p style="color:#9aa0aa; margin:1rem 0 0; font-size:.9rem;">No {{ m.label }} offers yet &mdash; add some from the <a href="/upload/" style="color:inherit; text-decoration:underline;">upload page</a>.</p>
+    <p style="color:#9aa0aa; margin:1rem 0 0; font-size:.9rem;">No {{ m.label }} offers yet </p>
     {% endif %}
     {% endfor %}
     {% endif %}
@@ -191,7 +221,7 @@
         &copy; 2026 DEAL HUNT. All Rights Reserved.
       </div>
       <p class="admin-notice">
-        <strong>Note:</strong> This portal is solely for DEAL HUNT related entities like Customer, Members, Clients, Administrators and Staff. Content Reproduction, Distribution or Transmission in any form or by any means without the prior written permission of the Administrator is strictly prohibited and liable for legal action.
+        <strong>Note:</strong> Content Reproduction, Distribution or Transmission in any form or by any means without the prior written permission of the Administrator is strictly prohibited and liable for legal action.
       </p>
     </div>
   </footer>
@@ -205,7 +235,7 @@
       let currentPage = 1;
       const IS_FILTERED = {% if is_filtered %}true{% else %}false{% endif %};
       const FILTER_QS = "{{ filter_qs|escapejs }}";
-      let hasNextPage = {% if page_obj.has_next %}true{% else %}false{% endif %};
+      let hasNextPage = false;  // filtered pages use numbered pagination
       let isFetchingBatch = false;
       const gridContainer = document.getElementById('productGridContainer');
       const scrollLoader  = document.getElementById('scrollLoader');

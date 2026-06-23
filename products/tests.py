@@ -1,3 +1,8 @@
+
+
+  
+    # refresh from a logged-in SiteStripe session when amzn.to shortening fails
+
 import os
 import re
 import asyncio
@@ -13,19 +18,8 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "7166438705:AAEzoZaT1vuDGheKR8DrhdE_r5sqD9yYv8o")
 
 SITE_BASE = "https://dealhunts.in"
-ADD_PRODUCT_URL = f"{SITE_BASE}/upload/"               # manual_add_product (remove @staff_member_required)
-FALLBACK_SHORTENER_URL = f"{SITE_BASE}/api/shorten/"   # used in SHORT mode
-
-# ---------------------------------------------------------------------------
-#  PA-API (Amazon Creators API) - same SDK & creds as your views.py.
-#  Paste the SAME values you use in views.py (AMAZON_API_CONFIG).
-# ---------------------------------------------------------------------------
-AMAZON_API_CONFIG = {
-    "CREDENTIAL_ID": "4v6br6lho9jsi7mc1iu418ci5c",          # <- fill
-    "CREDENTIAL_SECRET": "1oga06qok3g9nd2r92ogl5aqpe9b7kumr34e1aolceecdlfpgtnv",  # <- fill
-    "VERSION": "2.2",
-    "MARKETPLACE": "www.amazon.in",
-}
+BOT_CONVERT_URL = f"{SITE_BASE}/api/bot-convert/"      # product mode (full fetch + save, server-side)
+FALLBACK_SHORTENER_URL = f"{SITE_BASE}/api/shorten/"   # short mode
 
 # ---------------------------------------------------------------------------
 #  GROUP / USER -> affiliate tag
@@ -56,10 +50,12 @@ user_affiliate_tags = {
 }
 DEFAULT_AFFILIATE_TAG = "alena01-21"
 
-# Groups that get a SHORT link instead of a product page. Everything else gets
-# a full product page on dealhunts.in.
+# Groups that get a SHORT link instead of a product page.
 SHORT_LINK_GROUPS = {
     "Keyword Link",
+    "Swati Singh AFFILIATE BOT",
+    "Dabang affiliate bot"
+
 }
 SHORT_LINK_USERS = set()
 
@@ -72,7 +68,6 @@ AMAZON_MARKETPLACES = {
     "co.uk": {"domain": "www.amazon.co.uk", "marketplaceId": "A1F83G8C2ARO7P"},
 }
 DEFAULT_MARKETPLACE = AMAZON_MARKETPLACES["in"]
-
 AMAZON_COOKIES = {
   "ubid-acbin": "262-4739513-0649807",
   "session-id": "260-8710822-1107321",
@@ -88,9 +83,8 @@ AMAZON_COOKIES = {
   "x-acbin": "llJzSJnW0WIvesXW5jv09MajNkmmImP7X7OAvqKe4@fIqfFW2uOhIbiJTHXV2ieK",
   "csm-hit": "tb:8BXWCZSRQAMKJZ4D76YJ+s-186XQ8CHASDD9SXY3A8N|1782144076802&t:1782144076802&adb:adblk_no",
   "rxc": "AEEasHGmvSlGaoG3xpg"
-}    
-    # refresh from a logged-in SiteStripe session when amzn.to shortening fails
-
+   # refresh from a logged-in SiteStripe session when amzn.to shortening fails
+}
 AMAZON_HEADERS = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -106,7 +100,7 @@ session = None
 
 
 # =============================================================================
-#  URL HELPERS
+#  HELPERS
 # =============================================================================
 async def init_session(application=None):
     global session
@@ -167,218 +161,37 @@ def update_affiliate_tag(url, new_tag):
     return urlunparse((p.scheme, p.netloc, p.path, p.params, urlencode(q, doseq=True), ""))
 
 
-def extract_asin(url):
-    """Pull a 10-char ASIN out of a product/search/browse URL (mirrors views.py)."""
-    u = unquote(url)
-    patterns = [
-        r'/(?:dp|gp/product|gp/aw/d|product)/([A-Z0-9]{10})',
-        r'/dp/([A-Z0-9]{10})',
-        r'[?&](?:asin|ASIN)=([A-Z0-9]{10})',
-        r'[?&]hidden-keywords=([A-Z0-9]{10})',
-        r'p_78[:=]([A-Z0-9]{10})',
-        r'\bnode[:=]([A-Z0-9]{10})\b',
-    ]
-    for pat in patterns:
-        m = re.search(pat, u)
-        if m:
-            return m.group(1)
-    return None
-
-
-def derive_amazon_category(product_data):
-    """Pick one department label from the browse-node rankings (mirrors views.py)."""
-    rankings = product_data.get("category_rankings") or []
-    root = next((r for r in rankings if r.get("is_root") and r.get("name")), None)
-    if root:
-        return root["name"].strip()
-    best_path = ""
-    for r in rankings:
-        p = (r.get("path") or "")
-        if len(p) > len(best_path):
-            best_path = p
-    if best_path:
-        return best_path.split(" > ")[0].strip()
-    if rankings and rankings[0].get("name"):
-        return rankings[0]["name"].strip()
-    return ""
+SHORT_DOMAINS = ["amzn.in", "amzn.to", "amzn.eu", "bit.ly", "bitli.in",
+                 "linkredirect.in", "amzn-to.co", "dealhunts.in"]
 
 
 # =============================================================================
-#  PA-API FETCH - mirrors views.py fetch_product_from_creators_api.
-#  Returns the full data dict, or None on failure.
+#  PRODUCT MODE -> /api/bot-convert/ (server runs convert_and_upsert: full
+#  PA-API fetch, saves every field, dedups by ASIN). Returns product-page URL.
 # =============================================================================
-def fetch_product_paapi(asin, partner_tag):
+async def process_product(word, tag, session):
     try:
-        from creatorsapi_python_sdk.api_client import ApiClient
-        from creatorsapi_python_sdk.api.default_api import DefaultApi
-        from creatorsapi_python_sdk.models.get_items_request_content import GetItemsRequestContent
-        from creatorsapi_python_sdk.exceptions import ApiException
+        async with session.post(BOT_CONVERT_URL, json={"url": word, "tag": tag},
+                                timeout=120) as r:
+            if r.status == 200:
+                data = await r.json()
+                if data.get("status") == "success" and data.get("product_url"):
+                    return data["product_url"]
+                print(f"bot-convert error: {data.get('error')}")
+            else:
+                body = (await r.text())[:200]
+                print(f"bot-convert status {r.status}: {body}")
     except Exception as e:
-        print(f"Creators API SDK not installed: {e}")
-        return None
+        print(f"bot-convert error: {e}")
 
+    # Fallback: still return a working tagged link if the API call failed.
     try:
-        api_client = ApiClient(
-            credential_id=AMAZON_API_CONFIG["CREDENTIAL_ID"],
-            credential_secret=AMAZON_API_CONFIG["CREDENTIAL_SECRET"],
-            version=AMAZON_API_CONFIG["VERSION"],
-        )
-        api = DefaultApi(api_client)
-
-        resources = [
-            'images.primary.large', 'images.primary.medium',
-            'images.variants.large', 'images.variants.medium',
-            'itemInfo.title', 'itemInfo.features',
-            'offersV2.listings.price',
-            'browseNodeInfo.browseNodes',
-            'browseNodeInfo.browseNodes.ancestor',
-            'browseNodeInfo.browseNodes.salesRank',
-            'browseNodeInfo.websiteSalesRank',
-        ]
-        req = GetItemsRequestContent(partner_tag=partner_tag, item_ids=[asin], resources=resources)
-        response = api.get_items(x_marketplace=AMAZON_API_CONFIG["MARKETPLACE"],
-                                 get_items_request_content=req)
-
-        if not response.items_result or not response.items_result.items:
-            return None
-        item = response.items_result.items[0]
-
-        data = {
-            "title": "Amazon Product", "primary_image": "", "all_images": [],
-            "price": "Check on Amazon", "price_amount": None, "price_currency": "INR",
-            "mrp_amount": None, "mrp_display": "", "discount_percentage": None,
-            "savings_amount": None, "savings_display": "", "features": [],
-            "overall_rank": None, "overall_rank_context": "", "category_rankings": [],
-        }
-
-        if item.item_info and item.item_info.title:
-            t = item.item_info.title
-            data["title"] = t.display_value if hasattr(t, 'display_value') else str(t)
-
-        if item.images:
-            if item.images.primary:
-                for sz in ['large', 'medium']:
-                    obj = getattr(item.images.primary, sz, None)
-                    if obj and hasattr(obj, 'url'):
-                        data["primary_image"] = obj.url
-                        data["all_images"].append(obj.url)
-                        break
-            if getattr(item.images, 'variants', None):
-                for v in item.images.variants:
-                    for sz in ['large', 'medium']:
-                        obj = getattr(v, sz, None)
-                        if obj and hasattr(obj, 'url'):
-                            if obj.url not in data["all_images"]:
-                                data["all_images"].append(obj.url)
-                            break
-
-        if item.offers_v2 and item.offers_v2.listings:
-            for listing in item.offers_v2.listings:
-                price_obj = getattr(listing, "price", None)
-                if price_obj:
-                    money_obj = getattr(price_obj, "money", None)
-                    if money_obj:
-                        if hasattr(money_obj, 'display_amount'):
-                            data["price"] = money_obj.display_amount
-                        if hasattr(money_obj, 'amount'):
-                            data["price_amount"] = money_obj.amount
-                        if hasattr(money_obj, 'currency'):
-                            data["price_currency"] = money_obj.currency
-                    savings_obj = getattr(price_obj, "savings", None)
-                    if savings_obj:
-                        if hasattr(savings_obj, 'percentage'):
-                            data["discount_percentage"] = savings_obj.percentage
-                        sav_money = getattr(savings_obj, "money", None)
-                        if sav_money:
-                            if hasattr(sav_money, 'display_amount'):
-                                data["savings_display"] = sav_money.display_amount
-                            if hasattr(sav_money, 'amount'):
-                                data["savings_amount"] = sav_money.amount
-                    sb_obj = getattr(price_obj, "saving_basis", None)
-                    if sb_obj:
-                        sb_money = getattr(sb_obj, "money", None)
-                        if sb_money:
-                            if hasattr(sb_money, 'display_amount'):
-                                data["mrp_display"] = sb_money.display_amount
-                            if hasattr(sb_money, 'amount'):
-                                data["mrp_amount"] = sb_money.amount
-                break
-
-        bni = getattr(item, "browse_node_info", None)
-        if bni:
-            wsr = getattr(bni, "website_sales_rank", None)
-            if wsr:
-                if hasattr(wsr, 'sales_rank'):
-                    data["overall_rank"] = wsr.sales_rank
-                ctx = getattr(wsr, "context_free_name", None) or getattr(wsr, "display_name", None)
-                if ctx:
-                    data["overall_rank_context"] = str(ctx)
-            nodes = getattr(bni, "browse_nodes", None)
-            if nodes:
-                for n in nodes:
-                    rank = getattr(n, "sales_rank", None)
-                    if rank:
-                        name = getattr(n, "context_free_name", None) or getattr(n, "display_name", "Unknown")
-                        node_id = getattr(n, "id", "")
-                        is_root = getattr(n, "is_root", False)
-                        anc = getattr(n, "ancestor", None)
-                        chain = []
-                        while anc:
-                            aname = getattr(anc, "context_free_name", None) or getattr(anc, "display_name", "")
-                            if aname:
-                                chain.append(aname)
-                            anc = getattr(anc, "ancestor", None)
-                        full_path = (" > ".join(reversed(chain)) + f" > {name}") if chain else str(name)
-                        data["category_rankings"].append({
-                            "node_id": str(node_id), "name": str(name),
-                            "rank": int(rank), "is_root": bool(is_root), "path": full_path,
-                        })
-
-        if item.item_info and item.item_info.features:
-            if hasattr(item.item_info.features, 'display_values'):
-                for f in item.item_info.features.display_values[:4]:
-                    val = f.display_value if hasattr(f, 'display_value') else str(f)
-                    data["features"].append(val)
-
-        return data
-
-    except ApiException as ae:
-        print(f"[Creators API Exception] ASIN={asin}: {ae}")
-        return None
-    except Exception as e:
-        print(f"[Unexpected API Error] ASIN={asin}: {e}")
-        return None
-
-
-# =============================================================================
-#  POST full data to /upload/ (manual_add_product). Handles Django CSRF, so you
-#  only need to remove @staff_member_required (no @csrf_exempt needed).
-# =============================================================================
-async def add_product_on_site(fields, session):
-    token = None
-    try:
-        async with session.get(ADD_PRODUCT_URL, timeout=TIMEOUT) as r:
-            html = await r.text()
-            m = re.search(r'name="csrfmiddlewaretoken"\s+value="([^"]+)"', html)
-            if m:
-                token = m.group(1)
-    except Exception as e:
-        print(f"csrf fetch error: {e}")
-
-    data = dict(fields)
-    if token:
-        data["csrfmiddlewaretoken"] = token
-    headers = {"Referer": ADD_PRODUCT_URL}
-    try:
-        async with session.post(ADD_PRODUCT_URL, data=data, headers=headers, timeout=TIMEOUT) as r:
-            text = await r.text()
-            m = re.search(r"Slug:\s*([A-Za-z0-9\-]+)", text)
-            if m:
-                return f"{SITE_BASE}/product/{m.group(1)}/"
-            print(f"add product: no slug in response (status {r.status})")
-    except Exception as e:
-        print(f"add product error: {e}")
-    return None
+        w = normalize_url(word)
+        if any(d in w for d in SHORT_DOMAINS):
+            w = await expand_url(w, session)
+        return update_affiliate_tag(w, tag)
+    except Exception:
+        return word
 
 
 # =============================================================================
@@ -428,54 +241,6 @@ async def make_short_link(final_url, session):
     return await shorten_with_fallback_api(final_url, session)
 
 
-# =============================================================================
-#  PROCESS ONE LINK
-# =============================================================================
-SHORT_DOMAINS = ["amzn.in", "amzn.to", "amzn.eu", "bit.ly", "bitli.in",
-                 "linkredirect.in", "amzn-to.co", "dealhunts.in"]
-
-
-async def process_product(word, tag, session):
-    """Expand -> ASIN -> PA-API fetch (all fields) -> save on site -> product page URL."""
-    try:
-        word = normalize_url(word)
-        if any(d in word for d in SHORT_DOMAINS):
-            word = await expand_url(word, session)
-
-        asin = extract_asin(word)
-        if not asin:
-            return update_affiliate_tag(word, tag)  # keyword/search link: just tag
-
-        netloc = urlparse(word).netloc or "www.amazon.in"
-        long_url = f"https://{netloc}/dp/{asin}?tag={tag}"
-
-        loop = asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, fetch_product_paapi, asin, tag)
-        if not data:
-            return long_url
-
-        fields = {
-            "source": "amazon",
-            "title": data.get("title", "Amazon Product"),
-            "product_url": long_url,
-            "image_url": data.get("primary_image", ""),
-            "category": derive_amazon_category(data),
-            "description": " | ".join(data.get("features") or []) or data.get("title", ""),
-            "price_display": data.get("price", ""),
-            "mrp_display": data.get("mrp_display", ""),
-            "discount_percentage": str(data.get("discount_percentage") or ""),
-            "asin": asin,
-        }
-        page = await add_product_on_site(fields, session)
-        return page or long_url
-    except Exception as e:
-        print(f"process_product error: {e}")
-        try:
-            return update_affiliate_tag(word, tag)
-        except Exception:
-            return word
-
-
 async def process_short(word, tag, session):
     try:
         word = normalize_url(word)
@@ -491,6 +256,9 @@ async def process_short(word, tag, session):
             return word
 
 
+# =============================================================================
+#  MESSAGE PARSING + DISPATCH
+# =============================================================================
 def find_urls_in_text(text):
     pattern = (r"(https?://[^\s]+|(?:www\.)?(?:amazon\.[a-z\.]{2,6}|amzn\.[a-z]{2}|"
                r"amzn-to\.co|bitli\.in|linkredirect\.in|dealhunts\.in)[^\s]*)")
@@ -514,9 +282,6 @@ def resolve_tag_and_mode(chat, user_id):
     return tag, mode
 
 
-# =============================================================================
-#  TELEGRAM HANDLERS
-# =============================================================================
 async def link_converter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message.text
     user_id = update.message.from_user.id
@@ -565,9 +330,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "DealHunt Affiliate Bot\n\n"
         "Send Amazon links and I'll convert them.\n"
-        "- Default groups: I fetch full product details (price, MRP, discount, "
-        "image, category) and create a product page on dealhunts.in.\n"
-        "- Short-link groups: I reply with a short affiliate link instead."
+        "- Default groups: full product page created on dealhunts.in "
+        "(price, MRP, discount, image, category - all fetched by the site).\n"
+        "- Short-link groups: a short affiliate link instead."
     )
 
 
@@ -602,7 +367,7 @@ def main():
     print("=" * 60)
     print("DealHunt Affiliate Bot running")
     print(f"Site: {SITE_BASE}")
-    print(f"PA-API creds set: {bool(AMAZON_API_CONFIG['CREDENTIAL_ID'])}")
+    print(f"Product endpoint: {BOT_CONVERT_URL}")
     print(f"Short-link groups: {sorted(SHORT_LINK_GROUPS) or '(none)'}")
     print("=" * 60)
     app.run_polling()
