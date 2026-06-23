@@ -48,4 +48,5 @@ urlpatterns = [
 
     # Fast Redirect Engine Rule  (catch-all — keep this LAST)
     path("<str:code>/", views.redirect_short, name='redirect'),
+    path("api/bot-convert/", views.bot_convert, name="bot_convert"),
 ]

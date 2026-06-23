@@ -1525,3 +1525,30 @@ def contact(request):
     else:
         form = ContactForm()
     return render(request, "products/contact.html", {"form": form})
+
+
+@csrf_exempt
+@api_view(["POST"])
+def bot_convert(request):
+    """
+    POST /api/bot-convert/
+    Body: {"url": "<amazon url>", "tag": "<affiliate tag>"}
+    Runs convert_and_upsert -> fetches ALL details via PA-API, saves one
+    Product per ASIN+tag, returns the product-page link.
+    """
+    url = (request.data.get("url") or "").strip()
+    tag = (request.data.get("tag") or "kuldeepsingh01-21").strip()
+    if not url:
+        return Response({"status": "error", "error": "url is required"}, status=400)
+    product, link, long_url, error = convert_and_upsert(url, tag)
+    if error or not link:
+        return Response({"status": "error", "error": error or "failed"}, status=200)
+    return Response({
+        "status": "success",
+        "slug": link.slug,
+        "product_url": request.build_absolute_uri(f"/product/{link.slug}/"),
+        "title": product.title,
+        "price": product.price_display,
+        "mrp": product.mrp_display,
+        "discount": product.discount_percentage,
+    })    
