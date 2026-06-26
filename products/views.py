@@ -763,6 +763,8 @@ def product_list(request):
 
 
 
+from django.db.models import Max, Q, F
+
 def product_detail(request, slug):
     product = get_object_or_404(
         Product.objects.select_related('link'),
