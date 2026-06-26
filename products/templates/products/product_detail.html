@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>{{ product.link.title }} — DEALSFORFREE</title>
+  <title>{{ product.link.title }} — DEAL HUNT</title>
   <link rel="icon" type="image/png" href="{% static 'products/images/logo.png' %}">
 
   {# ===== Link preview (WhatsApp / Telegram / Facebook / Twitter) ===== #}
@@ -88,7 +88,7 @@
       <!-- Gallery -->
       <div class="pdp-gallery">
         <div class="pdp-gallery-inner shadow-card">
-          <span class="amazon-badge">amazon</span>
+          <span class="amazon-badge source-{{ product.source|default:'amazon' }}">{% if product.source and product.source != 'amazon' %}{{ product.get_source_display }}{% else %}amazon{% endif %}</span>
           <img src="{{ product.image_url }}" alt="{{ product.link.title }}" class="pdp-image">
         </div>
       </div>
