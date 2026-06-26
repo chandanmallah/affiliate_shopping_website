@@ -462,8 +462,15 @@ def shorten_url(long_url):
 # The fixed category strip shown on the homepage. Clicking a tab filters
 # by these labels (matched case-insensitively against Product.category).
 STRIP_CATEGORIES = [
-    "Baby", "Beauty", "Books", "Car & Motorbike", "Clothing & Accessories",
-    "Collectibles", "Computers & Accessories", "Deals", "Electronics", "Furniture",
+    "Amazon Devices", "Appliances", "Apps & Games", "Baby", "Beauty",
+    "Bags, Wallets & Luggage", "Books", "Car & Motorbike", "Clothing & Accessories",
+    "Collectibles", "Computers & Accessories", "Deals", "Electronics",
+    "Furniture", "Garden & Outdoors", "Gift Cards", "Grocery & Gourmet Foods",
+    "Health & Personal Care", "Home & Kitchen", "Home Improvement",
+    "Industrial & Scientific", "Jewellery", "Kindle Store", "Movies & TV Shows",
+    "Music", "Musical Instruments", "Office Products", "Pet Supplies",
+    "Shoes & Handbags", "Software", "Sports, Fitness & Outdoors",
+    "Tools & Home Improvement", "Toys & Games", "Video Games", "Watches",
 ]
 
 NON_AMAZON_SOURCES = ["flipkart", "myntra", "ajio"]
@@ -551,8 +558,8 @@ FILTER_CACHE_TTL = 60         # seconds
 
 HOMEPAGE_MARKETPLACES = [
     ("flipkart", "Flipkart", "Big Billion drops & everyday low prices"),
-    ("myntra",   "Myntra",   "Fashion & lifestyle offers"),
-    ("ajio",     "Ajio",     "Trendy styles, hand-picked deals"),
+    # ("myntra",   "Myntra",   "Fashion & lifestyle offers"),
+    # ("ajio",     "Ajio",     "Trendy styles, hand-picked deals"),
 ]
 
 
@@ -1526,7 +1533,7 @@ def contact(request):
                     subject=f"[Contact] {cd['subject']}",
                     message=f"From: {cd['name']} <{cd['email']}>\n\n{cd['message']}",
                     from_email=None,  # uses DEFAULT_FROM_EMAIL
-                    recipient_list=["support@dealsforfree.in"],
+                    recipient_list=["support@dealhunts.in"],
                     fail_silently=True,
                 )
             except Exception:
