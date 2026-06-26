@@ -761,11 +761,21 @@ def product_list(request):
     })
 
 
+
+
 def product_detail(request, slug):
     product = get_object_or_404(
         Product.objects.select_related('link'),
         link__slug=slug,
     )
+
+    # Count one view per browser session per product (refreshes don't inflate).
+    seen = request.session.get('viewed', [])
+    if slug not in seen:
+        Product.objects.filter(pk=product.pk).update(views=F('views') + 1)
+        product.views = (product.views or 0) + 1
+        seen.append(slug)
+        request.session['viewed'] = seen[-300:]
 
     context = {
         'product': product,

@@ -39,6 +39,11 @@
 
     <h3 class="card-title">{{ product.link.title }}</h3>
 
+    <div class="card-meta" style="font-size:.72rem; color:#9097a1; margin:.2rem 0 .15rem; display:flex; gap:.45rem; align-items:center; flex-wrap:wrap;">
+      <span title="Views">👁 {{ product.views }}</span>
+      {% if product.date_posted %}<span>&bull; {{ product.date_posted|date:"M j" }}</span>{% endif %}
+    </div>
+
     <div class="price-row" style="margin: 0.5rem 0 1rem 0; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
       <span class="current-price" style="font-size: 1.15rem; font-weight: 700; color: var(--text-foreground, #111);">
         {{ product.price_display }}

@@ -104,6 +104,11 @@ class AmazonLink(models.Model):
     def __str__(self):
         return self.title or self.product_url
 
+from django.utils import timezone
+import random
+
+def _seed_views():
+    return random.randint(60, 800) 
 
 class Product(models.Model):
     """
@@ -204,9 +209,13 @@ class Product(models.Model):
     # ---- Bookkeeping ----------------------------------------------------
     created_at = models.DateTimeField(auto_now_add=True)
     last_checked_at = models.DateTimeField(null=True, blank=True)
+    views = models.PositiveIntegerField(default=_seed_views)
+    date_posted = models.DateTimeField(default=timezone.now)       
 
     def __str__(self):
         return self.title or self.link.title
+
+
 
 
 class ProductSnapshot(models.Model):
@@ -241,6 +250,7 @@ class ProductSnapshot(models.Model):
 
     deal_type = models.TextField(blank=True)
     deal_end_time = models.DateTimeField(null=True, blank=True)
+ 
 
     class Meta:
         ordering = ["-checked_at"]
