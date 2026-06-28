@@ -5,7 +5,7 @@ from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.http import Http404, HttpResponse
 from django.db import transaction
-from django.db.models import Max, Q
+from django.db.models import Max, Q, F
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.mail import send_mail
@@ -270,6 +270,29 @@ def clean_and_tag_url(url, tag):
         parsed.params, urlencode(params, doseq=True), ''
     ))
 
+def is_search_link(url):
+    """True for Amazon keyword/search links (.../s?k=...). These should stay
+    search links (a full listing), not be converted into a single product."""
+    try:
+        p = urlparse(normalize_url(url))
+        path = (p.path or "").rstrip("/").lower()
+        q = parse_qs(p.query)
+        return path == "/s" and ("k" in q or "keywords" in q)
+    except Exception:
+        return False
+
+
+def clean_search_url(url, tag):
+    """Keep only the search keyword + affiliate tag (drop hidden-keywords and
+    all tracking junk) so the link opens the full search results page."""
+    p = urlparse(normalize_url(url))
+    q = parse_qs(p.query, keep_blank_values=True)
+    kw = (q.get("k") or q.get("keywords") or [""])[0]
+    netloc = p.netloc or "www.amazon.in"
+    new_q = {"k": kw, "tag": tag}
+    return urlunparse((p.scheme or "https", netloc, "/s", "",
+                       urlencode(new_q), ""))
+
 
 # ─────────────────────────────────────────────────────────────
 # SHORTENING: AMZN.TO (Amazon SiteStripe) — PRIMARY
@@ -439,16 +462,10 @@ def shorten_with_amozn(long_url):
 
 def shorten_url(long_url):
     """
-    1. Try Amazon SiteStripe → amzn.to/XXXXXXX
-    2. Fall back to our own DB → amozn.in/XXXXXXX
-    Returns (short_url, method_used)
+    Our own reliable shortener -> https://dealhunts.in/<code>.
+    Always returns a real short link (never the long URL) while the DB is up.
     """
-    amzn_short = try_amazon_native_shorten(long_url)
-    if amzn_short:
-        return amzn_short, "amzn.to"
-
-    fallback = shorten_with_amozn(long_url)
-    return fallback, "amozn.in"
+    return shorten_with_amozn(long_url), "dealhunts.in"
 
 
 # ==========================================
@@ -641,7 +658,7 @@ def _parse_amount(text):
         return None
 
 
-# @staff_member_required
+@staff_member_required
 def manual_add_product(request):
     """
     Staff-only manual upload page (gated behind the Django admin login).
@@ -767,10 +784,6 @@ def product_list(request):
         "marketplaces": home["marketplaces"],
     })
 
-
-
-
-from django.db.models import Max, Q, F
 
 def product_detail(request, slug):
     product = get_object_or_404(
@@ -974,6 +987,11 @@ def convert_and_upsert(raw_url, tag):
     Returns (product, amazon_link, long_url, error) where `error` is None on
     success, or a human-readable string when something failed.
     """
+    # Keyword/search links stay as search links (full listing) -> tag + shorten.
+    if is_search_link(raw_url):
+        short = shorten_url(clean_search_url(raw_url, tag))[0]
+        return None, None, short, None
+
     tagged = clean_and_tag_url(raw_url, tag)
 
     asin = extract_asin(tagged)
@@ -987,7 +1005,10 @@ def convert_and_upsert(raw_url, tag):
 
     product_data = fetch_product_from_creators_api(asin, tag)
     if not product_data:
-        return None, None, long_url, "Failed to collect product details from Amazon API."
+        # No catalog data from Amazon for this ASIN. Do NOT fail -- return a
+        # clean, tagged, SHORTENED link so the deal can still be shared.
+        short = shorten_url(long_url)[0]
+        return None, None, short, None
 
     fetched_title = product_data.get("title", "Amazon Product")
     derived_category = derive_amazon_category(product_data)
@@ -1055,8 +1076,12 @@ def create_short_url(request):
         code = 400 if "ASIN" in error else 500
         return Response({"error": error}, status=code)
 
+    if amazon_link is None:
+        # PA-API had no data -> a shortened tagged link was returned instead.
+        return Response({"status": "success", "type": "short_link", "short_url": long_url})
+
     # Build the custom internal redirection link reference
-    domain = getattr(settings, "SHORTENER_DOMAIN", "https://amozn.in").rstrip('/')
+    domain = getattr(settings, "SHORTENER_DOMAIN", "https://dealhunts.in").rstrip('/')
     product_page_url = f"{domain}/product/{amazon_link.slug}/"
 
     return Response({
@@ -1137,6 +1162,9 @@ def convert_affiliate_link(request):
     if error:
         code = 400 if "ASIN" in error else 502
         return Response({"error": error}, status=code)
+
+    if amazon_link is None:
+        return Response({"status": "success", "type": "short_link", "short_url": long_url})
 
     # Shareable link based on the actual request host (works in dev + prod).
     product_page_url = request.build_absolute_uri(f"/product/{amazon_link.slug}/")
@@ -1265,6 +1293,14 @@ def rewrite_message_links(message, tag, link_type, request):
                 errors.append({"url": token, "reason": "Could not resolve link."})
                 continue
 
+            # Keyword/search links stay as search links (full listing).
+            if is_search_link(full):
+                short = shorten_url(clean_search_url(full, tag))[0]
+                mapping[token] = short
+                items.append({"original": token, "asin": None,
+                              "replacement": short, "title": "Amazon search"})
+                continue
+
             # STEP 2 — collect every ASIN. A product link has one; a filtered
             # search link may have several; a keyword search link has none.
             asins = extract_all_asins(full)
@@ -1277,6 +1313,12 @@ def rewrite_message_links(message, tag, link_type, request):
                     product, amazon_link, long_url, error = convert_and_upsert(canonical, tag)
                     if error:
                         errors.append({"url": token, "asin": asin, "reason": error})
+                        continue
+                    if amazon_link is None:
+                        # No PA-API data -> use the shortened tagged link.
+                        reps.append(long_url)
+                        items.append({"original": token, "asin": asin,
+                                      "replacement": long_url, "title": "Amazon deal"})
                         continue
                     if link_type == "page":
                         reps.append(request.build_absolute_uri(f"/product/{amazon_link.slug}/"))
@@ -1313,6 +1355,11 @@ def rewrite_message_links(message, tag, link_type, request):
             product, amazon_link, long_url, error = convert_and_upsert(canonical, tag)
             if error:
                 errors.append({"url": tok, "reason": error})
+                continue
+            if amazon_link is None:
+                mapping[tok] = long_url   # shortened tagged link (no PA-API data)
+                items.append({"original": tok, "asin": tok,
+                              "replacement": long_url, "title": "Amazon deal"})
                 continue
             rep = (request.build_absolute_uri(f"/product/{amazon_link.slug}/")
                    if link_type == "page" else amazon_link.product_url)
@@ -1533,7 +1580,7 @@ def contact(request):
                     subject=f"[Contact] {cd['subject']}",
                     message=f"From: {cd['name']} <{cd['email']}>\n\n{cd['message']}",
                     from_email=None,  # uses DEFAULT_FROM_EMAIL
-                    recipient_list=["support@dealhunts.in"],
+                    recipient_list=["support@dealsforfree.in"],
                     fail_silently=True,
                 )
             except Exception:
@@ -1552,18 +1599,26 @@ def bot_convert(request):
     """
     POST /api/bot-convert/
     Body: {"url": "<amazon url>", "tag": "<affiliate tag>"}
-    Runs convert_and_upsert -> fetches ALL details via PA-API, saves one
-    Product per ASIN+tag, returns the product-page link.
+    Runs convert_and_upsert (full PA-API fetch, saves the product, dedups by
+    ASIN) and returns the product-page link — or a short link when there's no
+    product data / it's a search link.
     """
     url = (request.data.get("url") or "").strip()
     tag = (request.data.get("tag") or "kuldeepsingh01-21").strip()
     if not url:
         return Response({"status": "error", "error": "url is required"}, status=400)
+
     product, link, long_url, error = convert_and_upsert(url, tag)
-    if error or not link:
-        return Response({"status": "error", "error": error or "failed"}, status=200)
+    if error:
+        return Response({"status": "error", "error": error}, status=200)
+
+    # No product (PA-API had no data, or it was a search link) -> short link.
+    if link is None:
+        return Response({"status": "success", "type": "short_link", "short_url": long_url})
+
     return Response({
         "status": "success",
+        "type": "product",
         "slug": link.slug,
         "product_url": request.build_absolute_uri(f"/product/{link.slug}/"),
         "title": product.title,

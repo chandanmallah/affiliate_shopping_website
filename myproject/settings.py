@@ -91,12 +91,13 @@ TEMPLATES = [
 # ]
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
-SHORTENER_DOMAIN = "https://dealhunts.in."
+SHORTENER_DOMAIN = "https://dealhunts.in"
 
 # ADMIN_SECRET = config("ADMIN_SECRET")
 # SHORTENER_DOMAIN = "http://127.0.0.1:8000/"
 
 
+# SHORTENER_DOMAIN = "https://dealhunts.in"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
