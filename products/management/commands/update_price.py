@@ -56,7 +56,8 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         # Imported here so the module loads even if these move around.
         from products.models import Product
-        from products.views import fetch_product_from_creators_api, bust_catalog_cache
+        from products.views import (fetch_product_from_creators_api,
+                                    derive_amazon_category, bust_catalog_cache)
 
         field_names = {f.name for f in Product._meta.get_fields()}
         has_updated_at = "price_updated_at" in field_names
@@ -143,6 +144,7 @@ class Command(BaseCommand):
         with transaction.atomic():
             for product, action, data in staged:
                 if action == "update":
+                    # Price block
                     product.price_display = data.get("price", "")
                     product.price_amount = data.get("price_amount")
                     _set_if_field(product, field_names, "price_currency",
@@ -154,6 +156,27 @@ class Command(BaseCommand):
                                   data.get("savings_display", ""))
                     _set_if_field(product, field_names, "savings_amount",
                                   data.get("savings_amount"))
+                    # Everything else the API returned (refresh the whole record)
+                    if data.get("title"):
+                        product.title = data["title"]
+                        if product.link and product.link.title != data["title"]:
+                            product.link.title = data["title"]
+                            product.link.save(update_fields=["title"])
+                    if data.get("primary_image"):
+                        product.image_url = data["primary_image"]
+                    _set_if_field(product, field_names, "variant_images",
+                                  data.get("all_images", []))
+                    _set_if_field(product, field_names, "features",
+                                  data.get("features", []))
+                    _set_if_field(product, field_names, "overall_rank",
+                                  data.get("overall_rank"))
+                    _set_if_field(product, field_names, "overall_rank_context",
+                                  data.get("overall_rank_context", ""))
+                    _set_if_field(product, field_names, "category_rankings",
+                                  data.get("category_rankings", []))
+                    _cat = derive_amazon_category(data)
+                    if _cat:
+                        product.category = _cat
                 else:  # clear
                     product.price_display = ""
                     product.price_amount = None
@@ -167,11 +190,15 @@ class Command(BaseCommand):
                     product.price_updated_at = now
 
                 fields = ["price_display", "price_amount", "mrp_display",
-                          "mrp_amount", "discount_percentage"]
-                for extra in ("price_currency", "savings_display",
-                              "savings_amount", "price_updated_at"):
+                          "mrp_amount", "discount_percentage", "title", "image_url",
+                          "category"]
+                for extra in ("price_currency", "savings_display", "savings_amount",
+                              "variant_images", "features", "overall_rank",
+                              "overall_rank_context", "category_rankings",
+                              "price_updated_at"):
                     if extra in field_names:
                         fields.append(extra)
+                fields = [f for f in fields if f in field_names]
                 product.save(update_fields=fields)
 
         bust_catalog_cache()
