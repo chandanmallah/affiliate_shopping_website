@@ -89,7 +89,9 @@
       <div class="pdp-gallery">
         <div class="pdp-gallery-inner shadow-card">
           <span class="amazon-badge source-{{ product.source|default:'amazon' }}">{% if product.source and product.source != 'amazon' %}{{ product.get_source_display }}{% else %}amazon{% endif %}</span>
-          <img src="{{ product.image_url }}" alt="{{ product.link.title }}" class="pdp-image">
+          <a href="{{ product.link.product_url }}" target="_blank" rel="nofollow sponsored noopener" class="pdp-image-link">
+            <img src="{{ product.image_url }}" alt="{{ product.link.title }}" class="pdp-image">
+          </a>
         </div>
       </div>
 

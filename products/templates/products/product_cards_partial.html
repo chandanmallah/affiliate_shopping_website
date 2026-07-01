@@ -22,7 +22,9 @@
       </span>
     {% endif %}
 
-    <img src="{{ product.image_url }}" alt="{{ product.link.title }}" loading="lazy">
+    <a href="/product/{{ product.link.slug }}/" class="card-img-link" aria-label="{{ product.link.title }}">
+      <img src="{{ product.image_url }}" alt="{{ product.link.title }}" loading="lazy">
+    </a>
     <span class="card-ad-tag"></span>
   </div>
 
@@ -37,7 +39,7 @@
       </div>
     {% endif %}
 
-    <h3 class="card-title">{{ product.link.title }}</h3>
+    <h3 class="card-title"><a href="/product/{{ product.link.slug }}/" class="card-title-link">{{ product.link.title }}</a></h3>
 
     <div class="card-meta" style="font-size:.72rem; color:#9097a1; margin:.2rem 0 .15rem; display:flex; gap:.45rem; align-items:center; flex-wrap:wrap;">
       <span title="Views">👁 {{ product.views }}</span>
