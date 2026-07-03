@@ -1127,7 +1127,7 @@ AFFILIATE_BOTS = {
     "Renuka Affiliate Bot":      "priyanshgupta02-21",
     "Naman Affiliate Bot":       "saurabhrathore-21",
     "Kanika affiliate bot":      "chandanmallah-21",
-    "Madhukar Affiliate Bot":    "indiantester01-21",
+    "ADMIN":    "indiantester01-21",
     "Arif Affiliate Bot":        "dabangg00-21",
     "Harsh Affiliate Bot":       "cmar01-21",
     "Prashant Affiliate Bot":    "282807-21",
