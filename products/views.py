@@ -1682,6 +1682,35 @@ def _format_tv_signal(d):
     return "\n".join(lines)
 
 
+# @csrf_exempt
+# def tradingview_webhook(request, secret=None):
+#     """Receive a TradingView alert and forward it to Telegram.
+#     Auth: secret in the URL path, or a "secret" field in the JSON body."""
+#     import json as _json
+#     from django.conf import settings as _s
+#     if request.method == "GET":
+#         return HttpResponse("TradingView webhook is live.", content_type="text/plain")
+#     if request.method != "POST":
+#         return HttpResponse(status=405)
+
+#     expected = getattr(_s, "TV_WEBHOOK_SECRET", "")
+#     raw = request.body.decode("utf-8", "ignore").strip()
+#     try:
+#         payload = _json.loads(raw)
+#     except Exception:
+#         payload = None
+
+#     provided = secret or (payload.get("secret") if isinstance(payload, dict) else None)
+#     if not expected or provided != expected:
+#         return HttpResponse("unauthorized", status=401)
+
+#     if isinstance(payload, dict):
+#         text = _format_tv_signal(payload)
+#     else:
+#         text = "📈 <b>TradingView Signal</b>\n\n" + (raw or "(empty alert)")
+#     _tv_send_telegram(text)
+#     return HttpResponse("ok", content_type="text/plain")    
+
 @csrf_exempt
 def tradingview_webhook(request, secret=None):
     """Receive a TradingView alert and forward it to Telegram.
@@ -1695,18 +1724,24 @@ def tradingview_webhook(request, secret=None):
 
     expected = getattr(_s, "TV_WEBHOOK_SECRET", "")
     raw = request.body.decode("utf-8", "ignore").strip()
+    print(f"[tv] incoming POST, raw body: {raw[:500]}")
+
     try:
         payload = _json.loads(raw)
-    except Exception:
+    except Exception as e:
+        print(f"[tv] JSON parse failed: {e} | raw={raw[:300]}")
         payload = None
 
     provided = secret or (payload.get("secret") if isinstance(payload, dict) else None)
     if not expected or provided != expected:
+        print(f"[tv] unauthorized: provided={provided!r} expected_set={bool(expected)}")
         return HttpResponse("unauthorized", status=401)
 
     if isinstance(payload, dict):
         text = _format_tv_signal(payload)
     else:
         text = "📈 <b>TradingView Signal</b>\n\n" + (raw or "(empty alert)")
-    _tv_send_telegram(text)
-    return HttpResponse("ok", content_type="text/plain")    
+
+    sent = _tv_send_telegram(text)
+    print(f"[tv] telegram sent={sent}")
+    return HttpResponse("ok", content_type="text/plain")
