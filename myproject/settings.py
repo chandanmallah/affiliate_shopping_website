@@ -26,6 +26,10 @@ SECRET_KEY = 'django-insecure-g+7vp^wjgnkd20ewfzz!ijlm&ndn=prhf)bzu1%fb)oku^_0)f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
+TV_WEBHOOK_SECRET     = "chandan28maihutu"      # any random string
+TV_TELEGRAM_BOT_TOKEN = "8652891544:AAFelTQgXsI9-dOYuX1S0DDATEoTVvmKQ-E"
+TV_TELEGRAM_CHAT_ID   = "-5475098846"     # optional; else reuses TELEGRAM_CHAT_ID
+
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = ['*']
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

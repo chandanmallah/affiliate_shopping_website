@@ -1626,3 +1626,87 @@ def bot_convert(request):
         "mrp": product.mrp_display,
         "discount": product.discount_percentage,
     })    
+
+
+
+def _tv_send_telegram(text):
+    """Send a signal to the trading Telegram chat (TV_* settings, else TELEGRAM_*)."""
+    import json as _json, urllib.request
+    from django.conf import settings as _s
+    token = getattr(_s, "TV_TELEGRAM_BOT_TOKEN", "") or getattr(_s, "TELEGRAM_BOT_TOKEN", "")
+    chat = getattr(_s, "TV_TELEGRAM_CHAT_ID", "") or getattr(_s, "TELEGRAM_CHAT_ID", "")
+    if not token or not chat:
+        print("[tv] telegram not configured")
+        return False
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    data = _json.dumps({"chat_id": chat, "text": text, "parse_mode": "HTML",
+                        "disable_web_page_preview": True}).encode()
+    req = urllib.request.Request(url, data=data,
+                                 headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        urllib.request.urlopen(req, timeout=15)
+        return True
+    except Exception as e:
+        print(f"[tv] telegram error: {e}")
+        return False
+
+
+def _format_tv_signal(d):
+    """Turn a TradingView JSON alert into a tidy Telegram message."""
+    action = str(d.get("action") or d.get("side") or "").lower()
+    emoji = {"buy": "🟢", "long": "🟢", "sell": "🔴", "short": "🔴",
+             "exit": "⚪", "close": "⚪"}.get(action, "📈")
+    labels = {"ticker": "Ticker", "symbol": "Ticker", "exchange": "Exchange",
+              "action": "Action", "side": "Side", "price": "Price", "close": "Price",
+              "sl": "Stop Loss", "stoploss": "Stop Loss", "tp": "Target",
+              "target": "Target", "qty": "Qty", "quantity": "Qty",
+              "strategy": "Strategy", "interval": "Timeframe", "tf": "Timeframe",
+              "time": "Time", "timenow": "Time", "note": "Note",
+              "message": "Message", "comment": "Comment"}
+    order = ["ticker", "symbol", "exchange", "action", "side", "price", "close",
+             "sl", "stoploss", "tp", "target", "qty", "quantity", "strategy",
+             "interval", "tf", "time", "timenow", "note", "message", "comment"]
+    lines = [f"{emoji} <b>TradingView Signal</b>", ""]
+    seen = set()
+    for k in order:
+        if k in d and k != "secret" and d[k] not in (None, ""):
+            lbl = labels.get(k, k.title())
+            if lbl in seen:
+                continue
+            seen.add(lbl)
+            lines.append(f"<b>{lbl}:</b> {d[k]}")
+    for k, v in d.items():
+        if k == "secret" or k in order or v in (None, ""):
+            continue
+        lines.append(f"<b>{str(k).title()}:</b> {v}")
+    return "\n".join(lines)
+
+
+@csrf_exempt
+def tradingview_webhook(request, secret=None):
+    """Receive a TradingView alert and forward it to Telegram.
+    Auth: secret in the URL path, or a "secret" field in the JSON body."""
+    import json as _json
+    from django.conf import settings as _s
+    if request.method == "GET":
+        return HttpResponse("TradingView webhook is live.", content_type="text/plain")
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    expected = getattr(_s, "TV_WEBHOOK_SECRET", "")
+    raw = request.body.decode("utf-8", "ignore").strip()
+    try:
+        payload = _json.loads(raw)
+    except Exception:
+        payload = None
+
+    provided = secret or (payload.get("secret") if isinstance(payload, dict) else None)
+    if not expected or provided != expected:
+        return HttpResponse("unauthorized", status=401)
+
+    if isinstance(payload, dict):
+        text = _format_tv_signal(payload)
+    else:
+        text = "📈 <b>TradingView Signal</b>\n\n" + (raw or "(empty alert)")
+    _tv_send_telegram(text)
+    return HttpResponse("ok", content_type="text/plain")    
