@@ -112,7 +112,7 @@
         {% if detail.pricing.has_price or detail.pricing.has_mrp %}
         <div class="pdp-price-block">
           <div class="pdp-price-row">
-            {% if detail.pricing.has_price %}
+            <!-- {% if detail.pricing.has_price %}
               <span class="pdp-price-current">{{ detail.pricing.price_display|default:detail.pricing.price_amount }}</span>
             {% endif %}
             {% if detail.pricing.has_mrp %}
@@ -120,11 +120,11 @@
             {% endif %}
             {% if detail.pricing.has_discount %}
               <span class="pdp-discount-badge">{{ detail.pricing.discount_percentage }}% off</span>
-            {% endif %}
+            {% endif %} -->
           </div>
-          {% if detail.pricing.savings_display %}
+          <!-- {% if detail.pricing.savings_display %}
             <div class="pdp-savings">You save {{ detail.pricing.savings_display }}</div>
-          {% endif %}
+          {% endif %} -->
         </div>
         {% endif %}
 

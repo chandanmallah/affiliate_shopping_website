@@ -48,18 +48,18 @@
 
     <div class="price-row" style="margin: 0.5rem 0 1rem 0; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
       <span class="current-price" style="font-size: 1.15rem; font-weight: 700; color: var(--text-foreground, #111);">
-        {{ product.price_display }}
+        <!-- {{ product.price_display }} -->
       </span>
 
       {% if product.mrp_display %}
         <span class="mrp-price" style="text-decoration: line-through; color: #999; font-size: 0.88rem;">
-          {{ product.mrp_display }}
+          <!-- {{ product.mrp_display }} -->
         </span>
       {% endif %}
 
       {% if product.discount_percentage %}
         <span class="discount-tag" style="color: #2e7d32; font-size: 0.85rem; font-weight: 600; background: #e8f5e9; padding: 2px 6px; border-radius: 4px;">
-          {{ product.discount_percentage }}% Off
+          <!-- {{ product.discount_percentage }}% Off -->
         </span>
       {% endif %}
     </div>
