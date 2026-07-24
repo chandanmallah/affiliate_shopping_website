@@ -49,8 +49,9 @@ urlpatterns = [
     # Fast Redirect Engine Rule  (catch-all — keep this LAST)
     path("<str:code>/", views.redirect_short, name='redirect'),
     path("api/bot-convert/", views.bot_convert, name="bot_convert"),
-
+    path('/api/shorten/', create_short_url, name='shorten'),
     #TELEGRAM
     path("api/tv-signal/<str:secret>/", views.tradingview_webhook, name="tv_webhook"),
     path("api/tv-signal/", views.tradingview_webhook),   # secret in JSON body instead    
+    #
 ]
