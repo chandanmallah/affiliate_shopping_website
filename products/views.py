@@ -1064,7 +1064,7 @@ def create_short_url(request):
     Body: { "url": "<amazon url>", "tag": "<affiliate tag>" }
     """
     raw_url = request.data.get("url", "").strip()
-    tag     = request.data.get("tag", "kuldeepsingh01-21").strip()
+    tag     = request.data.get("tag", "sehajdeepkaur-21").strip()
 
     if not raw_url:
         return Response({"error": "url is required"}, status=400)
