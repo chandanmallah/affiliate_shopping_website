@@ -307,17 +307,30 @@ def is_search_link(url):
         return False
 
 
+# def clean_search_url(url, tag):
+#     """Keep only the search keyword + affiliate tag (drop hidden-keywords and
+#     all tracking junk) so the link opens the full search results page."""
+#     p = urlparse(normalize_url(url))
+#     q = parse_qs(p.query, keep_blank_values=True)
+#     kw = (q.get("k") or q.get("keywords") or [""])[0]
+#     netloc = p.netloc or "www.amazon.in"
+#     new_q = {"k": kw, "tag": tag}
+#     return urlunparse((p.scheme or "https", netloc, "/s", "",
+#                        urlencode(new_q), ""))
+
 def clean_search_url(url, tag):
-    """Keep only the search keyword + affiliate tag (drop hidden-keywords and
-    all tracking junk) so the link opens the full search results page."""
+    """Keep the search keyword + any rh=... refinement (e.g. the p_78:<ASIN>
+    product pin) + affiliate tag, dropping only tracking junk."""
     p = urlparse(normalize_url(url))
     q = parse_qs(p.query, keep_blank_values=True)
     kw = (q.get("k") or q.get("keywords") or [""])[0]
     netloc = p.netloc or "www.amazon.in"
     new_q = {"k": kw, "tag": tag}
+    rh = (q.get("rh") or [""])[0]
+    if rh:
+        new_q["rh"] = rh
     return urlunparse((p.scheme or "https", netloc, "/s", "",
                        urlencode(new_q), ""))
-
 
 # ─────────────────────────────────────────────────────────────
 # SHORTENING: AMZN.TO (Amazon SiteStripe) — PRIMARY
