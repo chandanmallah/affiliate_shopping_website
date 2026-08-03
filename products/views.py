@@ -41,6 +41,31 @@ AMAZON_API_CONFIG = {
     "MARKETPLACE": "www.amazon.in",
 }
 
+GROUP_TAGS = {
+    "ASH":                      "ashfiyarajguru-21",
+    "DH AFFILIATE BOT":          "banalibanerjee-21",
+    "POOJA AFFILIATE BOT":       "alena01-21",
+    "Rohin Affiliate Bot":       "lootlobhai-21",
+    "Jaincy Affiliate Bot":      "0c0-21",
+    "Karishma Affiliate Bot":    "brandinteger01-21",
+    "Priyansh Affiliate Bot":    "chandanmallah-21",
+    "Siddhant Affiliate Bot":    "pragyajain00-21",
+    "Dabang affiliate bot":      "fbh049-21",
+    "KULDEEP AFFILIATE BOT":     "kuldeepsingh01-21",
+    "Renuka Affiliate Bot":      "priyanshgupta02-21",
+    "Naman Affiliate Bot":       "saurabhrathore-21",
+    "Kanika affiliate bot":      "chandanmallah-21",
+    "ADMIN":                    "indiantester01-21",
+    "Arif Affiliate Bot":        "dabangg00-21",
+    "Harsh Affiliate Bot":       "cmar01-21",
+    "Prashant Affiliate Bot":    "282807-21",
+    "Karmveer Affiliate Bot":    "earnkaro0a7-21",
+    "Pooja Main Affiliate Bot":  "harharmahadev0c-21",
+    "Keyword Link":              "keyword04-21",
+    "Devil Affiliate Bot":       "saurabhrathore00-21",
+    "Swati Singh AFFILIATE BOT": "sehajdeepkaur-21",
+}
+
 
 # ─────────────────────────────────────────────────────────────
 # CORE SDK FETCH FUNCTION
@@ -1059,12 +1084,15 @@ def convert_and_upsert(raw_url, tag):
 # @csrf_exempt
 @api_view(["POST"])
 def create_short_url(request):
-    """
-    POST /api/shorten/
-    Body: { "url": "<amazon url>", "tag": "<affiliate tag>" }
-    """
+
+    # raw_url = request.data.get("url", "").strip()
+    # tag     = request.data.get("tag", "sehajdeepkaur-21").strip()
     raw_url = request.data.get("url", "").strip()
-    tag     = request.data.get("tag", "sehajdeepkaur-21").strip()
+    group   = (request.data.get("group") or request.data.get("chat_title")
+            or str(request.data.get("chat_id") or "")).strip()
+    tag     = (GROUP_TAGS.get(group)                    # 1. group's own tag
+            or (request.data.get("tag") or "").strip()  # 2. explicit tag
+            or "sehajdeepkaur-21").strip()          # 3. safe fallback    
 
     if not raw_url:
         return Response({"error": "url is required"}, status=400)
