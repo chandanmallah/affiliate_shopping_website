@@ -47,7 +47,7 @@ GROUP_TAGS = {
     "POOJA AFFILIATE BOT":       "harharmahadev0c-21",
     "Rohin Affiliate Bot":       "lootlobhai03-21",
     "Jaincy Affiliate Bot":      "0c0-21",
-    "Karishma Affiliate Bot":    "brandinteger01-21",
+    "Karishma Affiliate Bot":    "brndintgr-21",
     "Priyansh Affiliate Bot":    "chandanmallah-21",
     "Siddhant Affiliate Bot":    "pragyajain00-21",
     "Dabang affiliate bot":      "fbh049-21",
@@ -66,6 +66,19 @@ GROUP_TAGS = {
     "Swati Singh AFFILIATE BOT": "sehajdeepkaur-21",
 }
 
+
+def _host_key(request):
+    """Bare hostname: strip port and a leading 'www.', lowercased."""
+    host = request.get_host().split(":")[0].lower()
+    return host[4:] if host.startswith("www.") else host
+
+
+def tags_for_host(request):
+    """
+    Tags this domain may show. Returns a list, or None meaning
+    'no restriction' — so unknown hosts and local dev still show everything.
+    """
+    return getattr(settings, "SITE_TAGS", {}).get(_host_key(request))
 
 # ─────────────────────────────────────────────────────────────
 # CORE SDK FETCH FUNCTION
@@ -567,18 +580,10 @@ def derive_amazon_category(product_data):
     return ""
 
 
-def build_product_queryset(category=None, source=None, sources=None):
-    """
-    Returns a paginatable Product queryset with Amazon entries de-duplicated
-    by ASIN (one row per ASIN, keeping the most recently created). Non-Amazon
-    products and any Amazon rows without an ASIN are always kept as-is.
-
-    Optional filters:
-      - category : case-insensitive match against Product.category
-      - source   : single source string ("amazon"/"flipkart"/...)
-      - sources  : list of source strings
-    """
+def build_product_queryset(category=None, source=None, sources=None, tags=None):
     qs = Product.objects.select_related("link")
+    if tags:
+        qs = qs.filter(link__tag__in=tags)      # ← the domain filter
     if source:
         qs = qs.filter(source=source)
     if sources:
@@ -592,16 +597,15 @@ def build_product_queryset(category=None, source=None, sources=None):
     amazon_ids = list(
         amazon.values("link__asin").annotate(mid=Max("id")).values_list("mid", flat=True)
     )
-    # Everything that is NOT an Amazon-with-ASIN row (non-Amazon + Amazon w/o ASIN)
     other_ids = list(
         qs.exclude(id__in=list(amazon.values_list("id", flat=True))).values_list("id", flat=True)
     )
-
     return (
         Product.objects.select_related("link")
         .filter(id__in=amazon_ids + other_ids)
         .order_by("-created_at")
     )
+
 
 
 # ─────────────────────────────────────────────────────────────
@@ -612,50 +616,72 @@ HOME_CACHE_TTL = 120          # seconds
 FILTER_CACHE_TTL = 60         # seconds
 
 HOMEPAGE_MARKETPLACES = [
-    ("flipkart", "Flipkart", "Big Billion drops & everyday low prices"),
+    # ("flipkart", "Flipkart", "Big Billion drops & everyday low prices"),
     # ("myntra",   "Myntra",   "Fashion & lifestyle offers"),
     # ("ajio",     "Ajio",     "Trendy styles, hand-picked deals"),
 ]
 
 
-def get_homepage_data():
+def _catalog_version():
     """
-    Cached homepage payload: the Amazon grid + each marketplace section.
-    Evaluates the (expensive) dedup queries once per HOME_CACHE_TTL instead
-    of on every request. Products keep their select_related('link') so the
-    template never fires per-card queries.
+    A version counter baked into every catalog cache key. Bumping it (see
+    bust_catalog_cache) instantly invalidates EVERY domain's cached homepage
+    and filter lists at once — needed now that keys are per-domain and a plain
+    single-key delete would leave other domains stale.
     """
-    data = cache.get(HOME_CACHE_KEY)
+    v = cache.get("catalog:version")
+    if v is None:
+        cache.set("catalog:version", 1, None)   # no expiry
+        v = 1
+    return v
+
+
+def get_homepage_data(tags=None, host_key="_all"):
+    """
+    Cached homepage payload (Amazon grid + each marketplace section), scoped
+    per domain via host_key + the affiliate `tags` that domain may show.
+    """
+    cache_key = f"{HOME_CACHE_KEY}:{host_key}:v{_catalog_version()}"
+    data = cache.get(cache_key)
     if data is None:
         data = {
-            "amazon": list(build_product_queryset(source="amazon")[:HOMEPAGE_MAX]),
+            "amazon": list(build_product_queryset(source="amazon", tags=tags)[:HOMEPAGE_MAX]),
             "marketplaces": [
                 {"key": k, "label": label, "tagline": tagline,
-                 "products": list(build_product_queryset(source=k)[:TRENDING_LIMIT])}
+                 "products": list(build_product_queryset(source=k, tags=tags)[:TRENDING_LIMIT])}
                 for (k, label, tagline) in HOMEPAGE_MARKETPLACES
             ],
         }
-        cache.set(HOME_CACHE_KEY, data, HOME_CACHE_TTL)
+        cache.set(cache_key, data, HOME_CACHE_TTL)
     return data
 
 
-def get_filtered_products(category, source):
+def get_filtered_products(category, source, tags=None, host_key="_all"):
     """
-    Cached, fully-deduped product list for a category/source filter, so the
-    two dedup sub-queries run once per FILTER_CACHE_TTL rather than per page.
+    Cached, fully-deduped product list for a category/source filter, scoped per
+    domain via host_key + the affiliate `tags` that domain may show. The two
+    dedup sub-queries run once per FILTER_CACHE_TTL rather than per page.
     Returns a list (paginate it with Paginator).
     """
-    key = "catalog:filter:" + (category or "-").lower() + ":" + (source or "-").lower()
+    key = (f"catalog:filter:{host_key}:v{_catalog_version()}:"
+           + (category or "-").lower() + ":" + (source or "-").lower())
     items = cache.get(key)
     if items is None:
-        items = list(build_product_queryset(category=category or None, source=source or None))
+        items = list(build_product_queryset(
+            category=category or None, source=source or None, tags=tags))
         cache.set(key, items, FILTER_CACHE_TTL)
     return items
 
 
 def bust_catalog_cache():
-    """Drop the homepage cache so newly added/converted products show at once."""
-    cache.delete(HOME_CACHE_KEY)
+    """
+    Invalidate the cached catalog for EVERY domain at once (called on
+    add / convert / manual upload) by bumping the catalog version counter.
+    """
+    try:
+        cache.incr("catalog:version")
+    except ValueError:          # key not set yet
+        cache.set("catalog:version", 1, None)
 
 
 def compact_page_range(page_obj, width=2):
@@ -771,6 +797,11 @@ def product_list(request):
     source = (request.GET.get("source") or "").strip().lower()
     page_number = request.GET.get("page", 1)
 
+    # Per-domain filter: which affiliate tags this site may show.
+    # None => no restriction (unknown host / local dev shows everything).
+    tags = tags_for_host(request)
+    host_key = _host_key(request)
+
     # "All Deals" / empty / "all" means the unfiltered homepage.
     cat_is_all = category.lower() in ("", "all", "all deals")
     is_filtered = (not cat_is_all) or bool(source)
@@ -780,6 +811,8 @@ def product_list(request):
         items = get_filtered_products(
             category=None if cat_is_all else category,
             source=source or None,
+            tags=tags,
+            host_key=host_key,
         )
         paginator = Paginator(items, CATEGORY_PAGE_SIZE)
         page_obj = paginator.get_page(page_number)
@@ -811,7 +844,7 @@ def product_list(request):
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return HttpResponse("")   # homepage doesn't infinite-scroll
 
-    home = get_homepage_data()    # cached; busted on new products
+    home = get_homepage_data(tags=tags, host_key=host_key)    # cached per-domain; busted on new products
     return render(request, "products/product_list.html", {
         "page_obj": home["amazon"][:HOMEPAGE_SHOW],
         "show_all_amazon": len(home["amazon"]) > HOMEPAGE_SHOW,
@@ -1160,7 +1193,7 @@ AFFILIATE_BOTS = {
     "POOJA AFFILIATE BOT":       "harharmahadev0c-21",
     "Rohin Affiliate Bot":       "lootlobhai03-21",
     "Jaincy Affiliate Bot":      "0c0-21",
-    "Karishma Affiliate Bot":    "brandinteger01-21",
+    "Karishma Affiliate Bot":    "brndintgr-21",
     "Priyansh Affiliate Bot":    "chandanmallah-21",
     "Siddhant Affiliate Bot":    "pragyajain00-21",
     "Dabang affiliate bot":      "fbh049-21",
@@ -1522,7 +1555,9 @@ class ProductListCreateAPIView(APIView):
         if category.lower() in ("all", "all deals"):
             category = ""
 
-        qs = build_product_queryset(category=category or None, source=source or None)
+        # Scope to the affiliate tags this domain may show (None => no restriction).
+        tags = tags_for_host(request)
+        qs = build_product_queryset(category=category or None, source=source or None, tags=tags)
 
         try:
             page_size = max(1, min(int(request.GET.get("page_size", CATEGORY_PAGE_SIZE)), 100))

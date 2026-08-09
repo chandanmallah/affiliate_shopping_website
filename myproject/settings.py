@@ -24,14 +24,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-g+7vp^wjgnkd20ewfzz!ijlm&ndn=prhf)bzu1%fb)oku^_0)f'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 TV_WEBHOOK_SECRET     = "chandan28maihutu"      # any random string
 TV_TELEGRAM_BOT_TOKEN = "8652891544:AAFelTQgXsI9-dOYuX1S0DDATEoTVvmKQ-E"
 TV_TELEGRAM_CHAT_ID   = "-5475098846"     # optional; else reuses TELEGRAM_CHAT_ID
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['*']
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
@@ -40,6 +40,21 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 
+ALLOWED_HOSTS = [
+    "dealhunts.in", "www.dealhunts.in",
+    "cmaff.in", "www.cmaff.in",
+    "localhost", "127.0.0.1",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://dealhunts.in", "https://www.dealhunts.in",
+    "https://cmaff.in", "https://www.cmaff.in",
+]
+
+SITE_TAGS = {
+    # dealhunts.in is deliberately NOT listed → it shows EVERY product (all tags).
+    "cmaff.in": [],   # empty for now; add cmaff's own tags later, e.g. ["yourtag-21"]
+}
 
 # Application definition
 
