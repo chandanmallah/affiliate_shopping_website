@@ -1,24 +1,3 @@
-"""
-Per-domain branding for templates.
-
-Register this in settings.py under TEMPLATES → OPTIONS → context_processors:
-
-    'products.context_processors.site_branding',
-
-Then configure the brands (also in settings.py):
-
-    SITE_BRANDS = {
-        "dealhunts.in": {"name": "DealHunts", "lead": "DEAL", "tail": "HUNTS"},
-        "cmaff.in":     {"name": "CMAFF",     "lead": "CM",   "tail": "AFF"},
-    }
-    DEFAULT_SITE_BRAND = {"name": "DealHunts", "lead": "DEAL", "tail": "HUNTS"}
-
-Templates then get:
-    {{ site_name }}        -> "DealHunts" / "CMAFF"   (use in prose & titles)
-    {{ site_name_lead }}   -> "DEAL" / "CM"           (first half of the two-tone logo)
-    {{ site_name_tail }}   -> "HUNTS" / "AFF"         (highlighted half of the logo)
-    {{ site_domain }}      -> "dealhunts.in" / "cmaff.in"
-"""
 
 from django.conf import settings
 
@@ -37,10 +16,14 @@ def site_branding(request):
     # it from the current domain so cmaff.in shows support@cmaff.in automatically.
     support_email = brand.get("support_email") or f"support@{host}"
 
+    # Logo file (lives in products/static/products/images/). Falls back to logo.png.
+    logo_file = brand.get("logo", "logo.png")
+
     return {
         "site_name": brand.get("name", _FALLBACK["name"]),
         "site_name_lead": brand.get("lead", _FALLBACK["lead"]),
         "site_name_tail": brand.get("tail", _FALLBACK["tail"]),
         "site_domain": host,
         "site_support_email": support_email,
+        "site_logo": f"products/images/{logo_file}",
     }

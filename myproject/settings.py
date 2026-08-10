@@ -35,11 +35,10 @@ TV_TELEGRAM_CHAT_ID   = "-5475098846"     # optional; else reuses TELEGRAM_CHAT_
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 SITE_BRANDS = {
-    "dealhunts.in": {"name": "DealHunts", "lead": "DEAL", "tail": "HUNTS"},
-    "cmaff.in":     {"name": "CMAFF",     "lead": "CM",   "tail": "AFF"},
+    "dealhunts.in": {"name": "DealHunts", "lead": "DEAL", "tail": "HUNTS", "logo": "logo.png"},
+    "cmaff.in":     {"name": "CMAFF",     "lead": "CM",   "tail": "AFF",   "logo": "cm_aff_logo.png"},
 }
-DEFAULT_SITE_BRAND = {"name": "DealHunts", "lead": "DEAL", "tail": "HUNTS"}
-
+DEFAULT_SITE_BRAND = {"name": "DealHunts", "lead": "DEAL", "tail": "HUNTS", "logo": "logo.png"}
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"

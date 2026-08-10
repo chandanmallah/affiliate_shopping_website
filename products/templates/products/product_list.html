@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>{{ site_name }} — Handpicked Offers & Top Bargains</title>
-  <link rel="icon" type="image/png" href="{% static 'products/images/logo.png' %}">
+  <link rel="icon" type="image/png" href="{% static site_logo %}">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap">
@@ -40,7 +40,7 @@
     <header>
       <a href="/" class="logo-container" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
         <!-- Logo Image Placement Matrix Area -->
-        <img src="{% static 'products/images/logo.png' %}" alt="{{ site_name }} Logo" style="height: 40px; width: auto; object-fit: contain;">
+        <img src="{% static site_logo %}" alt="{{ site_name }} Logo" style="height: 40px; width: auto; object-fit: contain;">
         <h1 class="logo-text text-foreground" style="margin: 0;">{{ site_name_lead }}<span>{{ site_name_tail }}</span></h1>
       </a>
       

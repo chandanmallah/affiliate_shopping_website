@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>{{ product.link.title }} — {{ site_name }}</title>
-  <link rel="icon" type="image/png" href="{% static 'products/images/logo.png' %}">
+  <link rel="icon" type="image/png" href="{% static site_logo %}">
 
   {# ===== Link preview (WhatsApp / Telegram / Facebook / Twitter) ===== #}
   <meta property="og:type" content="product" />
@@ -104,7 +104,7 @@
     <header>
       <a href="/" class="logo-container" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
         <!-- Logo Image Placement Matrix Area -->
-        <img src="{% static 'products/images/logo.png' %}" alt="{{ site_name }} Logo" style="height: 40px; width: auto; object-fit: contain;">
+        <img src="{% static site_logo %}" alt="{{ site_name }} Logo" style="height: 40px; width: auto; object-fit: contain;">
         <h1 class="logo-text text-foreground" style="margin: 0;">{{ site_name_lead }}<span>{{ site_name_tail }}</span></h1>
       </a>
 
@@ -450,7 +450,7 @@
     <div class="footer-bottom">
       <div class="copyright-row">&copy; 2026 {{ site_name }}. All Rights Reserved.</div>
       <p class="admin-notice">
-        <strong>Disclaimer:</strong> Dealhunts.in is a participant in the Amazon Services LLC Associates Program, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.in. As an Amazon Associate, Dealhunts.in earns from qualifying purchases
+        <strong>Disclaimer:</strong> {{ site_name }} is a participant in the Amazon Services LLC Associates Program, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.in. As an Amazon Associate, {{ site_name }} earns from qualifying purchases.
       </p>
     </div>
   </footer>
