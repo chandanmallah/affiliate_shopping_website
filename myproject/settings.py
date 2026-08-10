@@ -57,7 +57,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 SITE_TAGS = {
     # dealhunts.in is deliberately NOT listed → it shows EVERY product (all tags).
-    "cmaff.in": ["brandinteger01-21"],   # empty for now; add cmaff's own tags later, e.g. ["yourtag-21"]
+    "cmaff.in": ["brandinteger01-21","cm0ef9-21"],   # empty for now; add cmaff's own tags later, e.g. ["yourtag-21"]
 }
 
 # Application definition
