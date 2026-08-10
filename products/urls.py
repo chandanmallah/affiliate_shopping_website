@@ -15,6 +15,9 @@ urlpatterns = [
     path('favicon.ico', views.favicon, name='favicon'),
     path('product/<slug:slug>/', views.product_detail, name='product_detail'),
 
+    # Visitor review submission (POST) for a product page.
+    path('product/<slug:slug>/review/', views.submit_review, name='submit-review'),
+
     path('show-data/', views.show_data_page, name='show-data-page'),
 
     # ──────────────────────────────────────────────────────────────
@@ -44,7 +47,7 @@ urlpatterns = [
     path('privacy-policy/', views.privacy_policy, name='privacy-policy'),
 
     path('terms/',   views.terms,   name='terms'),
-    path('contact/', views.contact, name='contact'),    
+    path('contact/', views.contact, name='contact'),
 
     # Fast Redirect Engine Rule  (catch-all — keep this LAST)
     path("<str:code>/", views.redirect_short, name='redirect'),
@@ -52,6 +55,6 @@ urlpatterns = [
     path('/api/shorten/', create_short_url, name='shorten'),
     #TELEGRAM
     path("api/tv-signal/<str:secret>/", views.tradingview_webhook, name="tv_webhook"),
-    path("api/tv-signal/", views.tradingview_webhook),   # secret in JSON body instead    
+    path("api/tv-signal/", views.tradingview_webhook),   # secret in JSON body instead
     #
 ]

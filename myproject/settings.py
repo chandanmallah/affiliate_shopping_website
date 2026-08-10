@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-g+7vp^wjgnkd20ewfzz!ijlm&ndn=prhf)bzu1%fb)oku^_0)f'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 TV_WEBHOOK_SECRET     = "chandan28maihutu"      # any random string
 TV_TELEGRAM_BOT_TOKEN = "8652891544:AAFelTQgXsI9-dOYuX1S0DDATEoTVvmKQ-E"

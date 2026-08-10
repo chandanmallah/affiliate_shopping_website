@@ -27,6 +27,64 @@
   <!-- Local theme stylesheet (same pink theme as the rest of the site) -->
   <link rel="stylesheet" href="{% static 'products/css/styles.css' %}">
 
+  <!-- Page-scoped styles for the ratings + reviews block -->
+  <style>
+    .star-wrap { position:relative; display:inline-block; line-height:1; letter-spacing:2px; }
+    .star-wrap .star-bg { color:#dcdfe4; }
+    .star-wrap .star-fg { color:#f5a623; position:absolute; left:0; top:0; overflow:hidden; white-space:nowrap; }
+
+    .pdp-rating-summary { display:inline-flex; align-items:center; gap:.5rem; margin:.35rem 0 .2rem; text-decoration:none; color:inherit; }
+    .pdp-rating-summary .star-wrap { font-size:1.05rem; }
+    .pdp-rating-summary strong { font-size:.95rem; color:#111827; }
+    .pdp-rating-summary .rs-count { font-size:.82rem; color:#6b7280; }
+    .pdp-rating-summary:hover .rs-count { text-decoration:underline; }
+
+    .reviews-section { margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid rgba(17,24,39,.08); }
+    .reviews-head { display:flex; flex-wrap:wrap; align-items:center; gap:1.25rem; margin-bottom:1.25rem; }
+    .reviews-head h2 { margin:0; font-size:1.5rem; }
+    .reviews-score { display:flex; align-items:center; gap:.8rem; }
+    .reviews-score .big { font-size:2.4rem; font-weight:800; line-height:1; color:#111827; }
+    .reviews-score .star-wrap { font-size:1.25rem; }
+    .reviews-score .meta { font-size:.82rem; color:#6b7280; }
+
+    .review-flash { margin:0 0 1rem; padding:.8rem 1rem; border-radius:12px; font-size:.9rem; }
+    .review-flash.success { background:#e8f7ee; color:#1b7a43; border:1px solid #bfe6cd; }
+    .review-flash.error   { background:#fdecef; color:#c0294a; border:1px solid #f4c6d1; }
+
+    .review-list { display:grid; gap:1rem; margin:0 0 2rem; }
+    .review-card { border:1px solid rgba(17,24,39,.08); border-radius:16px; padding:1.1rem 1.25rem; background:#fff; box-shadow:0 6px 18px rgba(17,24,39,.05); }
+    .review-card.featured { background:#fff8fb; border-color:#f6c9d9; }
+    .review-card .rc-top { display:flex; align-items:center; gap:.6rem; margin-bottom:.4rem; flex-wrap:wrap; }
+    .review-card .rc-avatar { width:34px; height:34px; border-radius:50%; background:#ff4a7a; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.9rem; }
+    .review-card .rc-author { font-weight:700; color:#111827; font-size:.92rem; }
+    .review-card .rc-verified { font-size:.7rem; color:#1b7a43; background:#e8f7ee; padding:2px 7px; border-radius:999px; font-weight:600; }
+    .review-card .rc-tag { font-size:.7rem; color:#9aa0aa; margin-left:auto; }
+    .review-card .star-wrap { font-size:.9rem; }
+    .review-card .rc-title { font-weight:700; color:#111827; margin:.5rem 0 .2rem; font-size:.95rem; }
+    .review-card .rc-body { color:#374151; font-size:.9rem; line-height:1.55; margin:0; }
+
+    .review-form-card { border:1px solid rgba(17,24,39,.08); border-radius:16px; padding:1.5rem; background:#fff; box-shadow:0 8px 24px rgba(17,24,39,.06); max-width:640px; }
+    .review-form-card h3 { margin:0 0 1rem; font-size:1.2rem; }
+    .rf-row { margin-bottom:1rem; }
+    .rf-row label { display:block; font-size:.82rem; font-weight:600; color:#374151; margin-bottom:.35rem; }
+    .rf-field { width:100%; padding:.7rem .85rem; font:inherit; color:#111827; background:#fff; border:1px solid #d7dbe2; border-radius:10px; }
+    .rf-field:focus { outline:none; border-color:#ff4a7a; box-shadow:0 0 0 3px rgba(255,74,122,.15); }
+    textarea.rf-field { min-height:110px; resize:vertical; }
+    .rf-two { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    @media (max-width:560px){ .rf-two { grid-template-columns:1fr; } }
+
+    /* Interactive star picker (radio buttons styled as stars) */
+    .star-input { display:inline-flex; flex-direction:row-reverse; gap:.15rem; }
+    .star-input input { position:absolute; opacity:0; width:0; height:0; }
+    .star-input label { font-size:1.7rem; color:#dcdfe4; cursor:pointer; line-height:1; transition:color .12s ease; }
+    .star-input label:hover, .star-input label:hover ~ label,
+    .star-input input:checked ~ label { color:#f5a623; }
+
+    .rf-submit { margin-top:.4rem; padding:.85rem 1.4rem; font:600 1rem/1 inherit; color:#fff; background:#ff4a7a; border:none; border-radius:10px; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; }
+    .rf-submit:hover { transform:translateY(-1px); box-shadow:0 8px 18px rgba(255,74,122,.35); }
+    .rf-hp { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  </style>
+
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HXD0PPQM64"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -104,6 +162,16 @@
         </div>
 
         <h1 class="pdp-title">{{ product.link.title }}</h1>
+
+        {# ── Star rating summary (blended seed + user reviews) ── #}
+        <a href="#reviews" class="pdp-rating-summary">
+          <span class="star-wrap" aria-hidden="true">
+            <span class="star-bg">★★★★★</span>
+            <span class="star-fg" style="width:{{ avg_pct }}%;">★★★★★</span>
+          </span>
+          <strong>{{ avg_rating }}</strong>
+          <span class="rs-count">{{ total_rating_count }} rating{{ total_rating_count|pluralize }}</span>
+        </a>
 
         {% if detail.availability.condition %}
           <p class="pdp-condition">Condition: <strong>{{ detail.availability.condition }}</strong></p>
@@ -196,6 +264,108 @@
         {% endif %}
       </div>
     </div>
+
+    <!-- ============ RATINGS & REVIEWS ============ -->
+    <section class="reviews-section" id="reviews">
+      <div class="reviews-head">
+        <h2 class="font-display">Ratings &amp; Reviews</h2>
+        <div class="reviews-score">
+          <span class="big">{{ avg_rating }}</span>
+          <div>
+            <span class="star-wrap" aria-hidden="true">
+              <span class="star-bg">★★★★★</span>
+              <span class="star-fg" style="width:{{ avg_pct }}%;">★★★★★</span>
+            </span>
+            <div class="meta">{{ total_rating_count }} rating{{ total_rating_count|pluralize }}{% if user_review_count %} · {{ user_review_count }} review{{ user_review_count|pluralize }}{% endif %}</div>
+          </div>
+        </div>
+      </div>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="review-flash {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="review-list">
+        {# Featured editorial review (auto-generated, always shown) #}
+        {% if product.auto_review %}
+        <div class="review-card featured">
+          <div class="rc-top">
+            <span class="rc-avatar">{{ product.auto_review_author|first|upper|default:"D" }}</span>
+            <span class="rc-author">{{ product.auto_review_author|default:"Verified Buyer" }}</span>
+            <span class="rc-verified">Verified Purchase</span>
+            <span class="star-wrap" aria-hidden="true" style="margin-left:.4rem;">
+              <span class="star-bg">★★★★★</span>
+              <span class="star-fg" style="width:{{ product.rating_pct }}%;">★★★★★</span>
+            </span>
+            <span class="rc-tag">Top review</span>
+          </div>
+          <p class="rc-body">{{ product.auto_review }}</p>
+        </div>
+        {% endif %}
+
+        {# Visitor-submitted reviews #}
+        {% for review in reviews %}
+        <div class="review-card">
+          <div class="rc-top">
+            <span class="rc-avatar">{{ review.author|first|upper|default:"A" }}</span>
+            <span class="rc-author">{{ review.author }}</span>
+            <span class="star-wrap" aria-hidden="true" style="margin-left:.4rem;">
+              <span class="star-bg">★★★★★</span>
+              <span class="star-fg" style="width:{{ review.rating_pct }}%;">★★★★★</span>
+            </span>
+            <span class="rc-tag">{{ review.created_at|date:"d M Y" }}</span>
+          </div>
+          {% if review.title %}<div class="rc-title">{{ review.title }}</div>{% endif %}
+          <p class="rc-body">{{ review.body|linebreaksbr }}</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Write a review -->
+      <div class="review-form-card">
+        <h3>Write a review</h3>
+        <form method="post" action="{% url 'submit-review' slug=product.link.slug %}" novalidate>
+          {% csrf_token %}
+
+          <!-- honeypot: hidden from humans, bots fill it -->
+          <div class="rf-hp" aria-hidden="true">
+            <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+          </div>
+
+          <div class="rf-row">
+            <label>Your rating</label>
+            <div class="star-input">
+              <input type="radio" id="star5" name="rating" value="5" checked><label for="star5" title="5 stars">★</label>
+              <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 stars">★</label>
+              <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 stars">★</label>
+              <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 stars">★</label>
+              <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="1 star">★</label>
+            </div>
+          </div>
+
+          <div class="rf-two">
+            <div class="rf-row">
+              <label for="rf-author">Your name</label>
+              <input type="text" id="rf-author" name="author" class="rf-field" placeholder="e.g. Rahul S."
+                     value="{% if user.is_authenticated %}{{ user.username }}{% endif %}" maxlength="80">
+            </div>
+            <div class="rf-row">
+              <label for="rf-title">Review title (optional)</label>
+              <input type="text" id="rf-title" name="title" class="rf-field" placeholder="Sums up your experience" maxlength="140">
+            </div>
+          </div>
+
+          <div class="rf-row">
+            <label for="rf-body">Your review</label>
+            <textarea id="rf-body" name="body" class="rf-field" placeholder="What did you like or dislike? How was the quality?" required></textarea>
+          </div>
+
+          <button type="submit" class="rf-submit">Post review</button>
+        </form>
+      </div>
+    </section>
 
     <!-- ============ DISCLAIMERS ============ -->
     <div class="pdp-disclaimers">

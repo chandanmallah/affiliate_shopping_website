@@ -41,6 +41,16 @@
 
     <h3 class="card-title"><a href="/product/{{ product.link.slug }}/" class="card-title-link">{{ product.link.title }}</a></h3>
 
+    {# ── Star rating (seeded 4.3–4.9) ── #}
+    <div class="card-rating" style="display:flex; align-items:center; gap:.35rem; margin:.15rem 0 .3rem;">
+      <span class="star-wrap" style="position:relative; display:inline-block; font-size:.9rem; line-height:1; letter-spacing:1px;" aria-hidden="true">
+        <span style="color:#dcdfe4;">★★★★★</span>
+        <span style="color:#f5a623; position:absolute; left:0; top:0; overflow:hidden; white-space:nowrap; width:{{ product.rating_pct }}%;">★★★★★</span>
+      </span>
+      <span style="font-size:.78rem; font-weight:700; color:#111;">{{ product.rating }}</span>
+      <span style="font-size:.72rem; color:#9097a1;">({{ product.rating_count }})</span>
+    </div>
+
     <div class="card-meta" style="font-size:.72rem; color:#9097a1; margin:.2rem 0 .15rem; display:flex; gap:.45rem; align-items:center; flex-wrap:wrap;">
       <span title="Views">👁 {{ product.views }}</span>
       {% if product.date_posted %}<span>&bull; {{ product.date_posted|date:"M j" }}</span>{% endif %}

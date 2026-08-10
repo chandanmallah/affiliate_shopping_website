@@ -17,7 +17,7 @@ from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated  # Optional: for admin protection
 
 # Note: Ensure you import AppConfiguration here
-from .models import Product, ShortURL, AmazonLink, AppConfiguration, ProductSnapshot
+from .models import Product, ShortURL, AmazonLink, AppConfiguration, ProductSnapshot, Review
 from .serializers import ProductSerializer
 from .forms import ContactForm
 
@@ -47,7 +47,7 @@ GROUP_TAGS = {
     "POOJA AFFILIATE BOT":       "harharmahadev0c-21",
     "Rohin Affiliate Bot":       "lootlobhai03-21",
     "Jaincy Affiliate Bot":      "0c0-21",
-    "Karishma Affiliate Bot":    "brndintgr-21",
+    "Karishma Affiliate Bot":    "brandinteger01-21",
     "Priyansh Affiliate Bot":    "chandanmallah-21",
     "Siddhant Affiliate Bot":    "pragyajain00-21",
     "Dabang affiliate bot":      "fbh049-21",
@@ -496,14 +496,38 @@ def try_amazon_native_shorten(long_url):
 # SHORTENING: AMOZN.IN (our DB) — FALLBACK
 # ─────────────────────────────────────────────────────────────
 
-def shorten_with_amozn(long_url):
+def shorten_with_amozn(long_url, reuse=False):
     """
-    Store in our ShortURL model → returns amozn.in/<code> URL.
+    Store in our ShortURL model → returns the /<code> short URL.
     Always succeeds as long as the DB is up.
+
+    reuse=False (default): ALWAYS mint a brand-new short code, even for a URL
+        we've shortened before — so every post/drop gets its own link.
+    reuse=True: return the most recent existing code for this long_url if one
+        exists (the old de-duplicating behaviour).
     """
-    obj, _ = ShortURL.objects.get_or_create(long_url=long_url)
+    if reuse:
+        obj = ShortURL.objects.filter(long_url=long_url).order_by("-id").first()
+        if obj:
+            cache.set(f"short_url:{obj.short_code}", obj.long_url, timeout=86400)
+            print(f"♻️  Reused amozn.in short link: {obj.short_url}")
+            return obj.short_url
+
+    # Always-new path: create a fresh row. short_code is random per save(), so
+    # retry on the near-impossible chance two codes collide.
+    from django.db import IntegrityError
+    obj = None
+    for _ in range(5):
+        try:
+            obj = ShortURL.objects.create(long_url=long_url)
+            break
+        except IntegrityError:
+            continue
+    if obj is None:                     # give up gracefully → reuse any existing
+        obj = ShortURL.objects.filter(long_url=long_url).order_by("-id").first()
+
     cache.set(f"short_url:{obj.short_code}", obj.long_url, timeout=86400)
-    print(f"✅ Fallback amozn.in shortener: {obj.short_url}")
+    print(f"✅ New amozn.in short link: {obj.short_url}")
     return obj.short_url
 
 
@@ -582,8 +606,10 @@ def derive_amazon_category(product_data):
 
 def build_product_queryset(category=None, source=None, sources=None, tags=None):
     qs = Product.objects.select_related("link")
-    if tags:
-        qs = qs.filter(link__tag__in=tags)      # ← the domain filter
+    # None => no restriction (show all). [] => restrict to nothing (empty site).
+    # [..] => restrict to those tags. This is why an unlisted host shows all.
+    if tags is not None:
+        qs = qs.filter(link__tag__in=tags)      # ← per-domain affiliate-tag filter
     if source:
         qs = qs.filter(source=source)
     if sources:
@@ -870,11 +896,76 @@ def product_detail(request, slug):
         seen.append(slug)
         request.session['viewed'] = seen[-300:]
 
+    # ── Reviews + a believable blended star rating ──────────────────────
+    # Headline rating starts from the product's seeded 4.3–4.9 value and is
+    # nudged by real user reviews (the seed acts like a large existing sample,
+    # so a handful of user reviews only shift it slightly — like a real store).
+    reviews = list(product.reviews.filter(is_approved=True).order_by('-created_at'))
+    base_n = product.rating_count or 0
+    base_rating = float(product.rating or 0)
+    if reviews:
+        user_sum = sum(r.rating for r in reviews)
+        avg = round((base_rating * base_n + user_sum) / (base_n + len(reviews)), 1)
+    else:
+        avg = round(base_rating, 1)
+    total_count = base_n + len(reviews)
+
     context = {
         'product': product,
         'detail': build_product_detail_context(product),
+        'reviews': reviews,
+        'avg_rating': avg,
+        'avg_pct': round(avg / 5 * 100, 1),   # for the star-fill overlay
+        'total_rating_count': total_count,
+        'user_review_count': len(reviews),
     }
     return render(request, 'products/product_detail.html', context)
+
+
+def submit_review(request, slug):
+    """
+    POST /product/<slug>/review/
+    Accepts a visitor review (name, star rating, optional title, body) and
+    shows it on the product page. Open to everyone (no login needed); a hidden
+    honeypot field blocks basic bots. Flip is_approved to False below if you'd
+    rather moderate reviews before they appear.
+    """
+    product = get_object_or_404(Product.objects.select_related('link'), link__slug=slug)
+
+    if request.method != "POST":
+        return redirect('product_detail', slug=slug)
+
+    # Honeypot: real users never fill this hidden field; bots do.
+    if (request.POST.get('website') or "").strip():
+        return redirect('product_detail', slug=slug)
+
+    author = (request.POST.get('author') or "").strip()
+    title = (request.POST.get('title') or "").strip()[:140]
+    body = (request.POST.get('body') or "").strip()
+    try:
+        rating = int(request.POST.get('rating') or 5)
+    except (TypeError, ValueError):
+        rating = 5
+    rating = max(1, min(5, rating))
+
+    if not author and request.user.is_authenticated:
+        author = request.user.username
+    author = author[:80] or "Anonymous"
+
+    if len(body) < 3:
+        messages.error(request, "Please write a short review before submitting.")
+        return redirect('product_detail', slug=slug)
+
+    Review.objects.create(
+        product=product,
+        author=author,
+        rating=rating,
+        title=title,
+        body=body,
+        is_approved=True,       # set to False to hold reviews for moderation
+    )
+    messages.success(request, "Thanks! Your review has been posted.")
+    return redirect('product_detail', slug=slug)
 
 
 # views.py
@@ -1193,7 +1284,7 @@ AFFILIATE_BOTS = {
     "POOJA AFFILIATE BOT":       "harharmahadev0c-21",
     "Rohin Affiliate Bot":       "lootlobhai03-21",
     "Jaincy Affiliate Bot":      "0c0-21",
-    "Karishma Affiliate Bot":    "brndintgr-21",
+    "Karishma Affiliate Bot":    "brandinteger01-21",
     "Priyansh Affiliate Bot":    "chandanmallah-21",
     "Siddhant Affiliate Bot":    "pragyajain00-21",
     "Dabang affiliate bot":      "fbh049-21",

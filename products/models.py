@@ -1,69 +1,3 @@
-# from django.db import models
-# from django.utils.text import slugify
-# from django.utils.crypto import get_random_string
-# from django.db import models
-# from django.utils.crypto import get_random_string
-# from django.conf import settings
-
-# class AppConfiguration(models.Model):
-#     """
-#     A persistent cloud-safe Key-Value store to hold dynamic configurations 
-#     like volatile Amazon session cookies across ephemeral container restarts.
-#     """
-#     key = models.CharField(max_length=255, unique=True)
-#     value = models.JSONField(default=dict)
-
-#     def __str__(self):
-#         return self.key
-
-# class AmazonLink(models.Model):
-#     # Changed max_length from 500 to 2000
-#     product_url = models.URLField(max_length=2000) 
-#     title = models.CharField(max_length=200, blank=True)
-#     slug = models.SlugField(unique=True, blank=True)
-#     added_at = models.DateTimeField(auto_now_add=True)
-
-#     def save(self, *args, **kwargs):
-#         if not self.slug:
-#             base_slug = slugify(self.title or "product")
-#             unique_suffix = get_random_string(6)
-#             self.slug = f"{base_slug}-{unique_suffix}"
-#         super().save(*args, **kwargs)
-
-#     def __str__(self):
-#         return self.title or self.product_url
-
-# class Product(models.Model):
-#     link = models.OneToOneField(AmazonLink, on_delete=models.CASCADE)
-#     description = models.TextField(blank=True)
-#     # Changed max_length to 2000 to match just in case
-#     image_url = models.URLField(max_length=2000, blank=True)  
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     def __str__(self):
-#         return self.link.title
-
-
-# class ShortURL(models.Model):
-#     # Changed max_length from 500 to 2000
-#     long_url = models.URLField(max_length=2000, unique=True)  
-#     short_code = models.CharField(max_length=10, unique=True, db_index=True)
-#     # Changed max_length from 300 to 1000
-#     short_url = models.URLField(max_length=1000, blank=True)  
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     def save(self, *args, **kwargs):
-#         if not self.short_code:
-#             self.short_code = get_random_string(7)
-
-#         domain = getattr(settings, "SHORTENER_DOMAIN", "https://amozn.in")
-#         self.short_url = f"{domain}/{self.short_code}"
-#         super().save(*args, **kwargs)
-#     def __str__(self):
-#         return self.short_url
-
-
-
 from django.db import models
 from django.utils.text import slugify
 
@@ -106,9 +40,68 @@ class AmazonLink(models.Model):
 
 from django.utils import timezone
 import random
+from decimal import Decimal
+
 
 def _seed_views():
-    return random.randint(60, 800) 
+    return random.randint(60, 800)
+
+
+# ─────────────────────────────────────────────────────────────
+# AUTO RATING + AUTO REVIEW HELPERS
+# ─────────────────────────────────────────────────────────────
+
+def _seed_rating():
+    """A believable headline star rating between 4.3 and 4.9 (one decimal)."""
+    return Decimal(random.choice(["4.3", "4.4", "4.5", "4.6", "4.7", "4.8", "4.9"]))
+
+
+def _seed_rating_count():
+    """A plausible number of ratings so the star line looks real."""
+    return random.randint(120, 3800)
+
+
+_REVIEW_OPENERS = [
+    "Honestly exceeded my expectations.",
+    "Really happy with this purchase.",
+    "Great value for the price.",
+    "Does exactly what it promises.",
+    "Solid quality — would buy again.",
+    "Impressed with the build and finish.",
+    "Genuinely a smart buy.",
+]
+_REVIEW_BODIES = [
+    "Delivery was quick and the packaging was secure. Been using it for a couple of weeks now and it's holding up really well.",
+    "Works exactly as described and feels premium for the price point. No complaints so far.",
+    "Setup was straightforward and it fit my needs perfectly. Already recommended it to friends and family.",
+    "The quality is noticeably better than similar options I've tried before. Money well spent.",
+    "Everything about it feels well thought out and it's been doing the job without any issues.",
+    "Bought it during a sale and it turned out to be a fantastic deal. Very satisfied with the value.",
+]
+_REVIEW_CLOSERS = [
+    "Definitely recommend it.",
+    "Would buy again without hesitation.",
+    "Five stars from me.",
+    "Very satisfied overall.",
+    "Great pick if you're on the fence.",
+]
+_REVIEW_NAMES = [
+    "Rahul S.", "Priya M.", "Amit K.", "Sneha R.", "Vikram J.",
+    "Ananya P.", "Karthik N.", "Divya S.", "Rohan G.", "Meera T.",
+    "Arjun V.", "Pooja B.", "Sahil D.", "Nisha K.", "Manish A.",
+    "Ishita C.", "Aditya R.", "Neha L.", "Varun M.", "Shreya D.",
+]
+
+
+def build_auto_review(title="", brand="", category="", rating=4.6):
+    """Compose a short, generic-but-natural review + a plausible author name."""
+    text = "{} {} {}".format(
+        random.choice(_REVIEW_OPENERS),
+        random.choice(_REVIEW_BODIES),
+        random.choice(_REVIEW_CLOSERS),
+    )
+    return random.choice(_REVIEW_NAMES), text
+
 
 class Product(models.Model):
     """
@@ -163,10 +156,18 @@ class Product(models.Model):
     # ---- Features (bullet points) ---------------------------------------
     features = models.JSONField(default=list, blank=True)
 
-    # ---- Customer reviews -----------------------------------------------
+    # ---- Customer reviews (from Amazon PA-API, may be blank) ------------
     star_rating = models.TextField(blank=True)
     review_count = models.TextField(blank=True)
     bought_past_month = models.TextField(blank=True)
+
+    # ---- Site rating + auto review (always present) ---------------------
+    # `rating` is the headline star value shown on cards + detail page.
+    # It is seeded to 4.3–4.9 and stays fixed for the row's lifetime.
+    rating = models.DecimalField(max_digits=2, decimal_places=1, default=_seed_rating)
+    rating_count = models.PositiveIntegerField(default=_seed_rating_count)
+    auto_review = models.TextField(blank=True)
+    auto_review_author = models.CharField(max_length=80, blank=True)
 
     # ---- Parent ASIN / rankings -----------------------------------------
     parent_asin = models.CharField(max_length=10, blank=True)
@@ -210,12 +211,67 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     last_checked_at = models.DateTimeField(null=True, blank=True)
     views = models.PositiveIntegerField(default=_seed_views)
-    date_posted = models.DateTimeField(default=timezone.now)       
+    date_posted = models.DateTimeField(default=timezone.now)
+
+    def save(self, *args, **kwargs):
+        # Generate a one-time auto review the first time the row is saved.
+        if not self.auto_review:
+            author, text = build_auto_review(
+                self.title or "", self.brand or "", self.category or "",
+                float(self.rating or Decimal("4.6")),
+            )
+            self.auto_review = text
+            if not self.auto_review_author:
+                self.auto_review_author = author
+        super().save(*args, **kwargs)
+
+    # ---- Rating display helpers ----------------------------------------
+    @property
+    def rating_pct(self):
+        """Star-fill percentage (0–100) for the seeded headline rating."""
+        return round(float(self.rating or 0) / 5 * 100, 1)
+
+    @property
+    def approved_reviews(self):
+        return self.reviews.filter(is_approved=True)
+
+    @property
+    def average_rating(self):
+        """Seeded rating blended with real user reviews (seed = large sample)."""
+        base_n = self.rating_count or 0
+        ur = list(self.approved_reviews)
+        if not ur:
+            return round(float(self.rating or 0), 1)
+        base_sum = float(self.rating or 0) * base_n
+        return round((base_sum + sum(r.rating for r in ur)) / (base_n + len(ur)), 1)
+
+    @property
+    def total_rating_count(self):
+        return (self.rating_count or 0) + self.approved_reviews.count()
 
     def __str__(self):
         return self.title or self.link.title
 
 
+class Review(models.Model):
+    """A visitor-submitted review shown on the product page."""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    author = models.CharField(max_length=80)
+    rating = models.PositiveSmallIntegerField(default=5)   # 1..5
+    title = models.CharField(max_length=140, blank=True)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_approved = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.author} · {self.rating}star · {self.product_id}"
+
+    @property
+    def rating_pct(self):
+        return round(self.rating / 5 * 100, 1)
 
 
 class ProductSnapshot(models.Model):
@@ -250,7 +306,7 @@ class ProductSnapshot(models.Model):
 
     deal_type = models.TextField(blank=True)
     deal_end_time = models.DateTimeField(null=True, blank=True)
- 
+
 
     class Meta:
         ordering = ["-checked_at"]
@@ -260,7 +316,7 @@ class ProductSnapshot(models.Model):
 
 
 class ShortURL(models.Model):
-    long_url = models.TextField(unique=True)
+    long_url = models.TextField(db_index=True)   # not unique: one long URL may have many codes
     short_code = models.CharField(max_length=10, unique=True, db_index=True)  # generated
     short_url = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -269,7 +325,7 @@ class ShortURL(models.Model):
         if not self.short_code:
             self.short_code = get_random_string(7)
 
-        domain = getattr(settings, "SHORTENER_DOMAIN", "https://amozn.in")
+        domain = getattr(settings, "SHORTENER_DOMAIN", "https://dealhunts.in")
         self.short_url = f"{domain}/{self.short_code}"
         super().save(*args, **kwargs)
 
