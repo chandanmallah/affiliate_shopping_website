@@ -20,6 +20,8 @@ from rest_framework.permissions import IsAuthenticated  # Optional: for admin pr
 from .models import Product, ShortURL, AmazonLink, AppConfiguration, ProductSnapshot, Review
 from .serializers import ProductSerializer
 from .forms import ContactForm
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 import json
 import re
@@ -896,26 +898,21 @@ def product_detail(request, slug):
         seen.append(slug)
         request.session['viewed'] = seen[-300:]
 
-    # ── Reviews + a believable blended star rating ──────────────────────
-    # Headline rating starts from the product's seeded 4.3–4.9 value and is
-    # nudged by real user reviews (the seed acts like a large existing sample,
-    # so a handful of user reviews only shift it slightly — like a real store).
+    # ── Reviews + headline star rating ──────────────────────────────────
+    # The headline stays the product's seeded 4.3–4.9 value so it always reads
+    # in-range and matches the card. Because seeded counts are small (3–15),
+    # blending user reviews in would swing the number too hard, so we keep the
+    # headline fixed and just fold visitor reviews into the displayed count.
     reviews = list(product.reviews.filter(is_approved=True).order_by('-created_at'))
-    base_n = product.rating_count or 0
-    base_rating = float(product.rating or 0)
-    if reviews:
-        user_sum = sum(r.rating for r in reviews)
-        avg = round((base_rating * base_n + user_sum) / (base_n + len(reviews)), 1)
-    else:
-        avg = round(base_rating, 1)
-    total_count = base_n + len(reviews)
+    headline = round(float(product.rating or 0), 1)
+    total_count = (product.rating_count or 0) + len(reviews)
 
     context = {
         'product': product,
         'detail': build_product_detail_context(product),
         'reviews': reviews,
-        'avg_rating': avg,
-        'avg_pct': round(avg / 5 * 100, 1),   # for the star-fill overlay
+        'avg_rating': headline,
+        'avg_pct': round(headline / 5 * 100, 1),   # for the star-fill overlay
         'total_rating_count': total_count,
         'user_review_count': len(reviews),
     }
@@ -925,10 +922,11 @@ def product_detail(request, slug):
 def submit_review(request, slug):
     """
     POST /product/<slug>/review/
-    Accepts a visitor review (name, star rating, optional title, body) and
-    shows it on the product page. Open to everyone (no login needed); a hidden
-    honeypot field blocks basic bots. Flip is_approved to False below if you'd
-    rather moderate reviews before they appear.
+    Accepts a member review (name, email, star rating, optional title, body)
+    and shows it on the product page. Name + email are required so submissions
+    are identifiable (in line with IS 19000:2022). The email is stored but
+    never shown publicly. A hidden honeypot field blocks basic bots. Flip
+    is_approved to False below if you'd rather moderate reviews before they show.
     """
     product = get_object_or_404(Product.objects.select_related('link'), link__slug=slug)
 
@@ -940,6 +938,7 @@ def submit_review(request, slug):
         return redirect('product_detail', slug=slug)
 
     author = (request.POST.get('author') or "").strip()
+    email = (request.POST.get('email') or "").strip()
     title = (request.POST.get('title') or "").strip()[:140]
     body = (request.POST.get('body') or "").strip()
     try:
@@ -948,17 +947,20 @@ def submit_review(request, slug):
         rating = 5
     rating = max(1, min(5, rating))
 
-    if not author and request.user.is_authenticated:
-        author = request.user.username
-    author = author[:80] or "Anonymous"
-
-    if len(body) < 3:
-        messages.error(request, "Please write a short review before submitting.")
+    # Name + email are required and must be valid.
+    if not author or not email or len(body) < 3:
+        messages.error(request, "Please add your name, a valid email, and a short review.")
+        return redirect('product_detail', slug=slug)
+    try:
+        validate_email(email)
+    except ValidationError:
+        messages.error(request, "Please enter a valid email address.")
         return redirect('product_detail', slug=slug)
 
     Review.objects.create(
         product=product,
-        author=author,
+        author=author[:80],
+        email=email,
         rating=rating,
         title=title,
         body=body,

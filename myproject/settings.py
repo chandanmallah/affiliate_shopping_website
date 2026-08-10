@@ -34,6 +34,11 @@ TV_TELEGRAM_CHAT_ID   = "-5475098846"     # optional; else reuses TELEGRAM_CHAT_
 # ALLOWED_HOSTS = ['*']
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+SITE_BRANDS = {
+    "dealhunts.in": {"name": "DealHunts", "lead": "DEAL", "tail": "HUNTS"},
+    "cmaff.in":     {"name": "CMAFF",     "lead": "CM",   "tail": "AFF"},
+}
+DEFAULT_SITE_BRAND = {"name": "DealHunts", "lead": "DEAL", "tail": "HUNTS"}
 
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
@@ -53,7 +58,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 SITE_TAGS = {
     # dealhunts.in is deliberately NOT listed → it shows EVERY product (all tags).
-    "cmaff.in": [],   # empty for now; add cmaff's own tags later, e.g. ["yourtag-21"]
+    "cmaff.in": ["brandinteger01-21"],   # empty for now; add cmaff's own tags later, e.g. ["yourtag-21"]
 }
 
 # Application definition
@@ -94,6 +99,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                "products.context_processors.site_branding",
             ],
         },
     },

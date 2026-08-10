@@ -5,9 +5,9 @@ from .models import Product, Review, AmazonLink
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ("author", "rating", "product", "is_approved", "created_at")
+    list_display = ("author", "email", "rating", "product", "is_approved", "created_at")
     list_filter = ("is_approved", "rating", "created_at")
-    search_fields = ("author", "title", "body")
+    search_fields = ("author", "email", "title", "body")
     list_editable = ("is_approved",)          # tick/untick to moderate quickly
     actions = ["approve_reviews", "hide_reviews"]
 

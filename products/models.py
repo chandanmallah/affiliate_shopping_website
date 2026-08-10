@@ -57,8 +57,8 @@ def _seed_rating():
 
 
 def _seed_rating_count():
-    """A plausible number of ratings so the star line looks real."""
-    return random.randint(120, 3800)
+    """A small, believable number of ratings (3–15) for a fresh listing."""
+    return random.randint(3, 15)
 
 
 _REVIEW_OPENERS = [
@@ -254,9 +254,10 @@ class Product(models.Model):
 
 
 class Review(models.Model):
-    """A visitor-submitted review shown on the product page."""
+    """A review from a site member, shown on the product page."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
     author = models.CharField(max_length=80)
+    email = models.EmailField(blank=True)                  # collected, never shown publicly
     rating = models.PositiveSmallIntegerField(default=5)   # 1..5
     title = models.CharField(max_length=140, blank=True)
     body = models.TextField()
@@ -325,7 +326,7 @@ class ShortURL(models.Model):
         if not self.short_code:
             self.short_code = get_random_string(7)
 
-        domain = getattr(settings, "SHORTENER_DOMAIN", "https://dealhunts.in")
+        domain = getattr(settings, "SHORTENER_DOMAIN", "https://amozn.in")
         self.short_url = f"{domain}/{self.short_code}"
         super().save(*args, **kwargs)
 
