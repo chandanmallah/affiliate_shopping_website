@@ -606,12 +606,14 @@ def derive_amazon_category(product_data):
     return ""
 
 
-def build_product_queryset(category=None, source=None, sources=None, tags=None):
+def build_product_queryset(category=None, source=None, sources=None, tags=None, search=None):
     qs = Product.objects.select_related("link")
     # None => no restriction (show all). [] => restrict to nothing (empty site).
     # [..] => restrict to those tags. This is why an unlisted host shows all.
     if tags is not None:
         qs = qs.filter(link__tag__in=tags)      # ← per-domain affiliate-tag filter
+    if search:
+        qs = qs.filter(Q(title__icontains=search) | Q(link__title__icontains=search))
     if source:
         qs = qs.filter(source=source)
     if sources:
@@ -823,6 +825,7 @@ def manual_add_product(request):
 def product_list(request):
     category = (request.GET.get("category") or "").strip()
     source = (request.GET.get("source") or "").strip().lower()
+    query = (request.GET.get("q") or "").strip()
     page_number = request.GET.get("page", 1)
 
     # Per-domain filter: which affiliate tags this site may show.
@@ -832,21 +835,27 @@ def product_list(request):
 
     # "All Deals" / empty / "all" means the unfiltered homepage.
     cat_is_all = category.lower() in ("", "all", "all deals")
-    is_filtered = (not cat_is_all) or bool(source)
+    is_filtered = bool(query) or (not cat_is_all) or bool(source)
 
-    # ── FILTERED / "SEE ALL" VIEW (numbered pagination + product count) ──
+    # ── FILTERED / SEARCH / "SEE ALL" VIEW (numbered pagination + count) ──
     if is_filtered:
-        items = get_filtered_products(
-            category=None if cat_is_all else category,
-            source=source or None,
-            tags=tags,
-            host_key=host_key,
-        )
+        if query:
+            # Search bypasses the category cache (queries are too varied to cache).
+            items = list(build_product_queryset(tags=tags, search=query))
+        else:
+            items = get_filtered_products(
+                category=None if cat_is_all else category,
+                source=source or None,
+                tags=tags,
+                host_key=host_key,
+            )
         paginator = Paginator(items, CATEGORY_PAGE_SIZE)
         page_obj = paginator.get_page(page_number)
 
         # Active filter preserved in pagination links.
         filter_pairs = []
+        if query:
+            filter_pairs.append(("q", query))
         if not cat_is_all:
             filter_pairs.append(("category", category))
         if source:
@@ -857,15 +866,26 @@ def product_list(request):
         if source in ("flipkart", "myntra", "ajio"):
             banner_image = f"products/images/banner-{source}.png"
 
+        if query:
+            active_label = f'Search: "{query}"'
+        elif not cat_is_all:
+            active_label = category
+        elif source:
+            active_label = source.title()
+        else:
+            active_label = "All Deals"
+
         return render(request, "products/product_list.html", {
             "page_obj": page_obj,
             "page_range": compact_page_range(page_obj),
             "categories": STRIP_CATEGORIES,
-            "active_category": category if not cat_is_all else (source.title() if source else "All Deals"),
+            "active_category": active_label,
             "is_filtered": True,
             "filter_qs": filter_qs,
             "banner_image": banner_image,
             "trending_products": [],
+            "search_query": query,
+            "result_count": paginator.count,
         })
 
     # ── HOMEPAGE (capped Amazon grid + "See all" buttons; no infinite scroll) ──

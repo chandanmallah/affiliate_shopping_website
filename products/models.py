@@ -57,8 +57,8 @@ def _seed_rating():
 
 
 def _seed_rating_count():
-    """A small, believable number of ratings (3–15) for a fresh listing."""
-    return random.randint(3, 15)
+    """A small, believable number of ratings (3–13) for a fresh listing."""
+    return random.randint(3, 13)
 
 
 _REVIEW_OPENERS = [
@@ -326,7 +326,7 @@ class ShortURL(models.Model):
         if not self.short_code:
             self.short_code = get_random_string(7)
 
-        domain = getattr(settings, "SHORTENER_DOMAIN", "https://amozn.in")
+        domain = getattr(settings, "SHORTENER_DOMAIN", "https://dealhunts.in")
         self.short_url = f"{domain}/{self.short_code}"
         super().save(*args, **kwargs)
 
