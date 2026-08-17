@@ -58,7 +58,7 @@ GROUP_TAGS = {
     "Naman Affiliate Bot":       "saurabhrathore-21",
     "Kanika affiliate bot":      "chandanmallah-21",
     "ADMIN":                    "earnkaro0a7-21",
-    "Arif Affiliate Bot":        "dabangg00-21",
+    "Arif Affiliate Bot":        "arif07860-21",
     "Harsh Affiliate Bot":       "cmar01-21",
     "Prashant Affiliate Bot":    "282807-21",
     "Karmveer Affiliate Bot":    "earnkaro0a7-21",

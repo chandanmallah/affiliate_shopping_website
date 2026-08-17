@@ -41,7 +41,7 @@ urlpatterns = [
 
     # Affiliate link converter (UNLISTED — no nav shortcut; visit directly)
     path('convert/', views.affiliate_converter, name='affiliate-converter'),
-    path('api/convert/', views.convert_affiliate_link, name='api-convert'),
+    # path('api/convert/', views.convert_affiliate_link, name='api-convert'),
     path('api/convert-message/', views.convert_message, name='api-convert-message'),
     path('api/products/cleanup/', EnforceCatalogRetentionAPIView.as_view(), name='api-catalog-cleanup'),
     path('privacy-policy/', views.privacy_policy, name='privacy-policy'),

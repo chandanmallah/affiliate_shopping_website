@@ -1,86 +1,125 @@
 """
-test.py — test the LIVE TradingView webhook on dealhunts.in over HTTP.
+wipe_db.py — permanently delete ALL data from your PostgreSQL (Render) database.
 
-Just run it (no Django, no server needed):
-    python test.py
+This removes every row from every LedgerBook table (transactions, clients,
+users, meta). After this, opening the app against this database shows the
+"Create account" screen again, as if it were brand new.
 
-It POSTs sample signals to your deployed webhook and checks the responses,
-then you confirm the messages arrived in Telegram.
+  *** THERE IS NO UNDO. ***
+  Run inspect_db.py first if you might want the data later.
+
+Two modes:
+  - Default: empties the tables (keeps the empty tables in place).
+  - --drop : also drops the tables entirely (the app recreates them on next run).
+
+Usage
+-----
+    pip install "psycopg[binary]"
+    python wipe_db.py            # empty the tables
+    python wipe_db.py --drop     # drop the tables completely
 """
 
-import json
-import urllib.request
-import urllib.error
+from __future__ import annotations
 
-# ── Your live webhook URL (with the secret) ──────────────────────────────────
-WEBHOOK_URL = "https://dealhunts.in/api/tv-signal/chandan28maihutu/"
-# ─────────────────────────────────────────────────────────────────────────────
+import sys
 
-# a deliberately-wrong-secret URL, for the rejection test
-_base = WEBHOOK_URL.rstrip("/").rsplit("/", 1)[0]      # .../api/tv-signal
-BAD_URL = _base + "/wrong-secret-xyz/"
+TABLES_IN_ORDER = ["transactions", "clients", "users", "meta"]  # children first
 
 
-def post(url, body, content_type):
-    data = body.encode() if isinstance(body, str) else body
-    req = urllib.request.Request(url, data=data,
-                                 headers={"Content-Type": content_type}, method="POST")
+def connect(url):
     try:
-        with urllib.request.urlopen(req, timeout=25) as r:
-            return r.status, r.read().decode("utf-8", "ignore")
-    except urllib.error.HTTPError as e:
-        return e.code, e.read().decode("utf-8", "ignore")
-    except Exception as e:
-        return None, str(e)
+        import psycopg
+        from psycopg.rows import dict_row
+        return psycopg.connect(url.replace("postgresql+psycopg://", "postgresql://"),
+                               row_factory=dict_row, autocommit=True)
+    except ImportError:
+        try:
+            import psycopg2
+            conn = psycopg2.connect(url)
+            conn.autocommit = True
+            return conn
+        except ImportError:
+            print('\n! PostgreSQL driver missing:\n    pip install "psycopg[binary]"')
+            sys.exit(1)
 
 
-def get(url):
+def count(cur, table):
     try:
-        with urllib.request.urlopen(url, timeout=25) as r:
-            return r.status, r.read().decode("utf-8", "ignore")
-    except urllib.error.HTTPError as e:
-        return e.code, e.read().decode("utf-8", "ignore")
-    except Exception as e:
-        return None, str(e)
-
-
-def show(name, status, body, expect):
-    ok = "✅" if status == expect else "❌"
-    print(f"{ok} {name}: HTTP {status} (expected {expect})  body={body[:120]!r}")
+        cur.execute(f"SELECT COUNT(*) FROM {table}")
+        row = cur.fetchone()
+        return list(row.values())[0] if isinstance(row, dict) else row[0]
+    except Exception:
+        return None  # table doesn't exist
 
 
 def main():
-    print("=" * 60)
-    print("LIVE WEBHOOK TEST")
-    print(f"URL: {WEBHOOK_URL}")
-    print("=" * 60)
+    drop = "--drop" in sys.argv
 
-    # 1) valid JSON signal
-    payload = json.dumps({
-        "ticker": "NIFTY", "action": "buy", "price": "22500",
-        "sl": "22400", "tp": "22700", "interval": "5", "note": "live test signal",
-    })
-    s, b = post(WEBHOOK_URL, payload, "application/json")
-    show("valid JSON signal", s, b, 200)
+    print("=" * 64)
+    print(" WIPE PostgreSQL database  —  THIS CANNOT BE UNDONE")
+    print("=" * 64)
 
-    # 2) plain-text signal
-    s, b = post(WEBHOOK_URL, "NIFTY BUY @ 22500 (auto text live test)", "text/plain")
-    show("plain-text signal", s, b, 200)
+    url = input("\nPostgreSQL URL (Render EXTERNAL):\n> ").strip()
+    if not url.startswith("postgres"):
+        print("! That doesn't look like a postgresql:// URL.")
+        sys.exit(1)
+    if "sslmode" not in url and "render.com" in url:
+        url += ("&" if "?" in url else "?") + "sslmode=require"
 
-    # 3) wrong secret -> should be rejected
-    s, b = post(BAD_URL, payload, "application/json")
-    show("wrong secret (should reject)", s, b, 401)
+    conn = connect(url)
+    cur = conn.cursor()
 
-    # 4) GET health check
-    s, b = get(WEBHOOK_URL)
-    show("GET health check", s, b, 200)
+    # show what's there now
+    print("\nCurrent contents:")
+    found_any = False
+    for t in TABLES_IN_ORDER:
+        n = count(cur, t)
+        if n is not None:
+            found_any = True
+            print(f"    {t:14} {n} row(s)")
+    if not found_any:
+        print("    (no LedgerBook tables found — nothing to wipe)")
+        return
 
-    print("=" * 60)
-    print("👉 Now check your Telegram chat — you should see TWO signals")
-    print("   (one formatted from JSON, one plain text).")
-    print("   If tests pass but nothing arrives, the Telegram token/chat id")
-    print("   in settings.py are wrong — the webhook returns 200 either way.")
-    print("=" * 60)
+    action = "DROP (delete tables entirely)" if drop else "EMPTY (delete all rows)"
+    print(f"\nAbout to: {action}")
+    print("This will permanently destroy the data above.")
+    confirm = input('\nType exactly  DELETE ALL  to proceed: ')
+    if confirm.strip() != "DELETE ALL":
+        print("\nCancelled. Nothing was changed.")
+        return
+
+    if drop:
+        for t in TABLES_IN_ORDER:
+            try:
+                cur.execute(f"DROP TABLE IF EXISTS {t} CASCADE")
+                print(f"  dropped {t}")
+            except Exception as e:
+                print(f"  ! {t}: {e}")
+    else:
+        for t in TABLES_IN_ORDER:
+            try:
+                # TRUNCATE ... CASCADE clears rows and resets id sequences.
+                cur.execute(f"TRUNCATE TABLE {t} RESTART IDENTITY CASCADE")
+                print(f"  emptied {t}")
+            except Exception as e:
+                print(f"  ! {t}: {e}")
+
+    # confirm result
+    print("\nAfter wipe:")
+    for t in TABLES_IN_ORDER:
+        n = count(cur, t)
+        print(f"    {t:14} {'(dropped)' if n is None else str(n) + ' row(s)'}")
+
+    try:
+        conn.close()
+    except Exception:
+        pass
+
+    print("\n" + "=" * 64)
+    print(" Done. Open the app against this database to start fresh")
+    print(" (you'll get the 'Create account' screen).")
+    print("=" * 64)
 
 
 if __name__ == "__main__":
