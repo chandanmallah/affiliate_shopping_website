@@ -69,6 +69,8 @@ GROUP_TAGS = {
 }
 
 
+
+
 def _host_key(request):
     """Bare hostname: strip port and a leading 'www.', lowercased."""
     host = request.get_host().split(":")[0].lower()
@@ -1816,6 +1818,26 @@ def bot_convert(request):
         "discount": product.discount_percentage,
     })    
 
+
+
+def product_go(request, slug):
+    """
+    Interstitial redirect.
+    GET /product/<slug>/go/  -> shows the product for ~0.8s, then
+    auto-redirects to the tagged Amazon URL (the Buy Now link).
+    """
+    product = get_object_or_404(
+        Product.objects.select_related('link'),
+        link__slug=slug,
+    )
+    amazon_url = product.link.product_url or request.build_absolute_uri(
+        f"/product/{slug}/"
+    )  # fall back to the normal page if the Amazon URL is somehow empty
+    return render(request, 'products/product_go.html', {
+        'product': product,
+        'amazon_url': amazon_url,
+        'delay_ms': 800,          
+    })
 
 
 def _tv_send_telegram(text):

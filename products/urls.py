@@ -56,5 +56,6 @@ urlpatterns = [
     #TELEGRAM
     path("api/tv-signal/<str:secret>/", views.tradingview_webhook, name="tv_webhook"),
     path("api/tv-signal/", views.tradingview_webhook),   # secret in JSON body instead
+    path('product/<slug:slug>/go/', views.product_go, name='product_go'),
     #
 ]
