@@ -34,12 +34,15 @@ from creatorsapi_python_sdk.exceptions import ApiException
 
 
 import os
+
 AMAZON_API_CONFIG = {
-    "CREDENTIAL_ID": os.environ["AMAZON_CREDENTIAL_ID"],
-    "CREDENTIAL_SECRET": os.environ["AMAZON_CREDENTIAL_SECRET"],
-    "VERSION": os.environ.get("AMAZON_CREDENTIAL_VERSION", "3.2"),
-    "MARKETPLACE": os.environ.get("AMAZON_MARKETPLACE", "www.amazon.in"),
+    # "CREDENTIAL_ID": os.environ["AMAZON_CREDENTIAL_ID"],
+    # "CREDENTIAL_SECRET": os.environ["AMAZON_CREDENTIAL_SECRET"],
+    # "VERSION": os.environ.get("AMAZON_CREDENTIAL_VERSION", "3.2"),
+    # "MARKETPLACE": os.environ.get("AMAZON_MARKETPLACE", "www.amazon.in"),
 }
+
+
 GROUP_TAGS = {
     "ASH":                      "ashfiyarajguru-21",
     "DH AFFILIATE BOT":          "banalibanerjee-21",
@@ -90,169 +93,170 @@ def fetch_product_from_creators_api(asin, partner_tag):
     Extracts core fields, nested money metrics, and complete browse node category hierarchies.
     """
     try:
-        # Initialize the API Client
-        api_client = ApiClient(
-            credential_id=AMAZON_API_CONFIG["CREDENTIAL_ID"],
-            credential_secret=AMAZON_API_CONFIG["CREDENTIAL_SECRET"],
-            version=AMAZON_API_CONFIG["VERSION"]
-        )
-        api = DefaultApi(api_client)
+    #     # Initialize the API Client
+    #     api_client = ApiClient(
+    #         credential_id=AMAZON_API_CONFIG["CREDENTIAL_ID"],
+    #         credential_secret=AMAZON_API_CONFIG["CREDENTIAL_SECRET"],
+    #         version=AMAZON_API_CONFIG["VERSION"]
+    #     )
+    #     api = DefaultApi(api_client)
 
-        # Define the structural resources to grab from Amazon
-        resources = [
-            'images.primary.large', 'images.primary.medium',
-            'images.variants.large', 'images.variants.medium',
-            'itemInfo.title', 'itemInfo.features',
-            'offersV2.listings.price',
-            'browseNodeInfo.browseNodes',                # Required for categories
-            'browseNodeInfo.browseNodes.ancestor',       # Required for paths
-            'browseNodeInfo.browseNodes.salesRank',      # Required for category ranks
-            'browseNodeInfo.websiteSalesRank',           # Required for overall site rank
-        ]
+    #     # Define the structural resources to grab from Amazon
+    #     resources = [
+    #         'images.primary.large', 'images.primary.medium',
+    #         'images.variants.large', 'images.variants.medium',
+    #         'itemInfo.title', 'itemInfo.features',
+    #         'offersV2.listings.price',
+    #         'browseNodeInfo.browseNodes',                # Required for categories
+    #         'browseNodeInfo.browseNodes.ancestor',       # Required for paths
+    #         'browseNodeInfo.browseNodes.salesRank',      # Required for category ranks
+    #         'browseNodeInfo.websiteSalesRank',           # Required for overall site rank
+    #     ]
         
-        req = GetItemsRequestContent(partner_tag=partner_tag, item_ids=[asin], resources=resources)
-        response = api.get_items(x_marketplace=AMAZON_API_CONFIG["MARKETPLACE"], get_items_request_content=req)
+    #     req = GetItemsRequestContent(partner_tag=partner_tag, item_ids=[asin], resources=resources)
+    #     response = api.get_items(x_marketplace=AMAZON_API_CONFIG["MARKETPLACE"], get_items_request_content=req)
 
-        if not response.items_result or not response.items_result.items:
-            return None
+    #     if not response.items_result or not response.items_result.items:
+    #         return None
 
-        item = response.items_result.items[0]
+    #     item = response.items_result.items[0]
         
-        # Initialize schema mapping with strict defaults
-        data = {
-            "title": "Amazon Product",
-            "primary_image": "",
-            "all_images": [],
-            "price": "Check on Amazon",
-            "price_amount": None,
-            "price_currency": "INR",
-            "mrp_amount": None,
-            "mrp_display": "",
-            "discount_percentage": None,
-            "savings_amount": None,
-            "savings_display": "",
-            "features": [],
-            "overall_rank": None,
-            "overall_rank_context": "",
-            "category_rankings": []                     # Will match JSONField requirements
-        }
+    #     # Initialize schema mapping with strict defaults
+    #     data = {
+    #         "title": "Amazon Product",
+    #         "primary_image": "",
+    #         "all_images": [],
+    #         "price": "Check on Amazon",
+    #         "price_amount": None,
+    #         "price_currency": "INR",
+    #         "mrp_amount": None,
+    #         "mrp_display": "",
+    #         "discount_percentage": None,
+    #         "savings_amount": None,
+    #         "savings_display": "",
+    #         "features": [],
+    #         "overall_rank": None,
+    #         "overall_rank_context": "",
+    #         "category_rankings": []                     # Will match JSONField requirements
+    #     }
 
-        # Extract Title
-        if item.item_info and item.item_info.title:
-            t = item.item_info.title
-            data["title"] = t.display_value if hasattr(t, 'display_value') else str(t)
+    #     # Extract Title
+    #     if item.item_info and item.item_info.title:
+    #         t = item.item_info.title
+    #         data["title"] = t.display_value if hasattr(t, 'display_value') else str(t)
 
-        # Extract Primary and Variant Images
-        if item.images:
-            if item.images.primary:
-                for sz in ['large', 'medium']:
-                    obj = getattr(item.images.primary, sz, None)
-                    if obj and hasattr(obj, 'url'):
-                        data["primary_image"] = obj.url
-                        data["all_images"].append(obj.url)
-                        break
+    #     # Extract Primary and Variant Images
+    #     if item.images:
+    #         if item.images.primary:
+    #             for sz in ['large', 'medium']:
+    #                 obj = getattr(item.images.primary, sz, None)
+    #                 if obj and hasattr(obj, 'url'):
+    #                     data["primary_image"] = obj.url
+    #                     data["all_images"].append(obj.url)
+    #                     break
             
-            if hasattr(item.images, 'variants') and item.images.variants:
-                for v in item.images.variants:
-                    for sz in ['large', 'medium']:
-                        obj = getattr(v, sz, None)
-                        if obj and hasattr(obj, 'url'):
-                            if obj.url not in data["all_images"]:
-                                data["all_images"].append(obj.url)
-                            break
+    #         if hasattr(item.images, 'variants') and item.images.variants:
+    #             for v in item.images.variants:
+    #                 for sz in ['large', 'medium']:
+    #                     obj = getattr(v, sz, None)
+    #                     if obj and hasattr(obj, 'url'):
+    #                         if obj.url not in data["all_images"]:
+    #                             data["all_images"].append(obj.url)
+    #                         break
 
-        # ---- EXTRACT NESTED PRICING METRICS VIA MONEY OBJECTS ----
-        if item.offers_v2 and item.offers_v2.listings:
-            for listing in item.offers_v2.listings:
-                price_obj = getattr(listing, "price", None)
-                if price_obj:
-                    money_obj = getattr(price_obj, "money", None)
-                    if money_obj:
-                        if hasattr(money_obj, 'display_amount'):
-                            data["price"] = money_obj.display_amount  #
-                        if hasattr(money_obj, 'amount'):
-                            data["price_amount"] = money_obj.amount    #
-                        if hasattr(money_obj, 'currency'):
-                            data["price_currency"] = money_obj.currency  #
+    #     # ---- EXTRACT NESTED PRICING METRICS VIA MONEY OBJECTS ----
+    #     if item.offers_v2 and item.offers_v2.listings:
+    #         for listing in item.offers_v2.listings:
+    #             price_obj = getattr(listing, "price", None)
+    #             if price_obj:
+    #                 money_obj = getattr(price_obj, "money", None)
+    #                 if money_obj:
+    #                     if hasattr(money_obj, 'display_amount'):
+    #                         data["price"] = money_obj.display_amount  #
+    #                     if hasattr(money_obj, 'amount'):
+    #                         data["price_amount"] = money_obj.amount    #
+    #                     if hasattr(money_obj, 'currency'):
+    #                         data["price_currency"] = money_obj.currency  #
 
-                    savings_obj = getattr(price_obj, "savings", None)
-                    if savings_obj:
-                        if hasattr(savings_obj, 'percentage'):
-                            data["discount_percentage"] = savings_obj.percentage #
+    #                 savings_obj = getattr(price_obj, "savings", None)
+    #                 if savings_obj:
+    #                     if hasattr(savings_obj, 'percentage'):
+    #                         data["discount_percentage"] = savings_obj.percentage #
                         
-                        sav_money = getattr(savings_obj, "money", None)
-                        if sav_money:
-                            if hasattr(sav_money, 'display_amount'):
-                                data["savings_display"] = sav_money.display_amount #
-                            if hasattr(sav_money, 'amount'):
-                                data["savings_amount"] = sav_money.amount
+    #                     sav_money = getattr(savings_obj, "money", None)
+    #                     if sav_money:
+    #                         if hasattr(sav_money, 'display_amount'):
+    #                             data["savings_display"] = sav_money.display_amount #
+    #                         if hasattr(sav_money, 'amount'):
+    #                             data["savings_amount"] = sav_money.amount
 
-                    sb_obj = getattr(price_obj, "saving_basis", None)
-                    if sb_obj:
-                        sb_money = getattr(sb_obj, "money", None)
-                        if sb_money:
-                            if hasattr(sb_money, 'display_amount'):
-                                data["mrp_display"] = sb_money.display_amount #
-                            if hasattr(sb_money, 'amount'):
-                                data["mrp_amount"] = sb_money.amount          #
-                break
+    #                 sb_obj = getattr(price_obj, "saving_basis", None)
+    #                 if sb_obj:
+    #                     sb_money = getattr(sb_obj, "money", None)
+    #                     if sb_money:
+    #                         if hasattr(sb_money, 'display_amount'):
+    #                             data["mrp_display"] = sb_money.display_amount #
+    #                         if hasattr(sb_money, 'amount'):
+    #                             data["mrp_amount"] = sb_money.amount          #
+    #             break
 
-        # ---- EXTRACT CATEGORY AND RANKINGS DATA ----
-        bni = getattr(item, "browse_node_info", None)
-        if bni:
-            # 1. Overall Website Rank
-            wsr = getattr(bni, "website_sales_rank", None)
-            if wsr:
-                if hasattr(wsr, 'sales_rank'):
-                    data["overall_rank"] = wsr.sales_rank
-                ctx = getattr(wsr, "context_free_name", None) or getattr(wsr, "display_name", None)
-                if ctx:
-                    data["overall_rank_context"] = str(ctx)
+    #     # ---- EXTRACT CATEGORY AND RANKINGS DATA ----
+    #     bni = getattr(item, "browse_node_info", None)
+    #     if bni:
+    #         # 1. Overall Website Rank
+    #         wsr = getattr(bni, "website_sales_rank", None)
+    #         if wsr:
+    #             if hasattr(wsr, 'sales_rank'):
+    #                 data["overall_rank"] = wsr.sales_rank
+    #             ctx = getattr(wsr, "context_free_name", None) or getattr(wsr, "display_name", None)
+    #             if ctx:
+    #                 data["overall_rank_context"] = str(ctx)
 
-            # 2. Specific Browse Nodes Category List
-            nodes = getattr(bni, "browse_nodes", None)
-            if nodes:
-                for n in nodes:
-                    # Filter nodes that have a valid sales rank assigned
-                    rank = getattr(n, "sales_rank", None)
-                    if rank:
-                        name = getattr(n, "context_free_name", None) or getattr(n, "display_name", "Unknown")
-                        node_id = getattr(n, "id", "")
-                        is_root = getattr(n, "is_root", False)
+    #         # 2. Specific Browse Nodes Category List
+    #         nodes = getattr(bni, "browse_nodes", None)
+    #         if nodes:
+    #             for n in nodes:
+    #                 # Filter nodes that have a valid sales rank assigned
+    #                 rank = getattr(n, "sales_rank", None)
+    #                 if rank:
+    #                     name = getattr(n, "context_free_name", None) or getattr(n, "display_name", "Unknown")
+    #                     node_id = getattr(n, "id", "")
+    #                     is_root = getattr(n, "is_root", False)
                         
-                        # Trace backward ancestor list path hierarchy
-                        anc = getattr(n, "ancestor", None)
-                        chain = []
-                        while anc:
-                            aname = getattr(anc, "context_free_name", None) or getattr(anc, "display_name", "")
-                            if aname:
-                                chain.append(aname)
-                            anc = getattr(anc, "ancestor", None)
+    #                     # Trace backward ancestor list path hierarchy
+    #                     anc = getattr(n, "ancestor", None)
+    #                     chain = []
+    #                     while anc:
+    #                         aname = getattr(anc, "context_free_name", None) or getattr(anc, "display_name", "")
+    #                         if aname:
+    #                             chain.append(aname)
+    #                         anc = getattr(anc, "ancestor", None)
                         
-                        # Construct breadcrumb string format matching your logs
-                        full_path = ""
-                        if chain:
-                            full_path = " > ".join(reversed(chain)) + f" > {name}"
-                        else:
-                            full_path = str(name)
+    #                     # Construct breadcrumb string format matching your logs
+    #                     full_path = ""
+    #                     if chain:
+    #                         full_path = " > ".join(reversed(chain)) + f" > {name}"
+    #                     else:
+    #                         full_path = str(name)
                         
-                        # Add tracking item payload properties mapped onto Model specification
-                        data["category_rankings"].append({
-                            "node_id": str(node_id),
-                            "name": str(name),
-                            "rank": int(rank),
-                            "is_root": bool(is_root),
-                            "path": full_path
-                        })
+    #                     # Add tracking item payload properties mapped onto Model specification
+    #                     data["category_rankings"].append({
+    #                         "node_id": str(node_id),
+    #                         "name": str(name),
+    #                         "rank": int(rank),
+    #                         "is_root": bool(is_root),
+    #                         "path": full_path
+    #                     })
 
-        # Extract Feature Bullets
-        if item.item_info and item.item_info.features:
-            if hasattr(item.item_info.features, 'display_values'):
-                for f in item.item_info.features.display_values[:4]:
-                    val = f.display_value if hasattr(f, 'display_value') else str(f)
-                    data["features"].append(val)
+    #     # Extract Feature Bullets
+    #     if item.item_info and item.item_info.features:
+    #         if hasattr(item.item_info.features, 'display_values'):
+    #             for f in item.item_info.features.display_values[:4]:
+    #                 val = f.display_value if hasattr(f, 'display_value') else str(f)
+    #                 data["features"].append(val)
 
-        return data
+    #     return data]
+        print(f"❌ [Creators API Exception] ASIN={asin}: {ae}")
 
     except ApiException as ae:
         print(f"❌ [Creators API Exception] ASIN={asin}: {ae}")
