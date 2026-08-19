@@ -37,12 +37,11 @@ from creatorsapi_python_sdk.exceptions import ApiException
 # ─────────────────────────────────────────────────────────────
 
 AMAZON_API_CONFIG = {
-    "CREDENTIAL_ID": "4v6br6lho9jsi7mc1iu418ci5c",
-    "CREDENTIAL_SECRET": "1oga06qok3g9nd2r92ogl5aqpe9b7kumr34e1aolceecdlfpgtnv",
-    "VERSION": "2.2",
-    "MARKETPLACE": "www.amazon.in",
+    "CREDENTIAL_ID": os.environ["AMAZON_CREDENTIAL_ID"],
+    "CREDENTIAL_SECRET": os.environ["AMAZON_CREDENTIAL_SECRET"],
+    "VERSION": os.environ.get("AMAZON_CREDENTIAL_VERSION", "3.2"),
+    "MARKETPLACE": os.environ.get("AMAZON_MARKETPLACE", "www.amazon.in"),
 }
-
 GROUP_TAGS = {
     "ASH":                      "ashfiyarajguru-21",
     "DH AFFILIATE BOT":          "banalibanerjee-21",
