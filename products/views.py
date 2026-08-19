@@ -32,9 +32,7 @@ from creatorsapi_python_sdk.api.default_api import DefaultApi
 from creatorsapi_python_sdk.models.get_items_request_content import GetItemsRequestContent
 from creatorsapi_python_sdk.exceptions import ApiException
 
-# ─────────────────────────────────────────────────────────────
-# DATABASE COOKIE STORAGE — Cloud & Stateless Compliant
-# ─────────────────────────────────────────────────────────────
+
 import os
 AMAZON_API_CONFIG = {
     "CREDENTIAL_ID": os.environ["AMAZON_CREDENTIAL_ID"],
