@@ -35,7 +35,7 @@ from creatorsapi_python_sdk.exceptions import ApiException
 # ─────────────────────────────────────────────────────────────
 # DATABASE COOKIE STORAGE — Cloud & Stateless Compliant
 # ─────────────────────────────────────────────────────────────
-
+import os
 AMAZON_API_CONFIG = {
     "CREDENTIAL_ID": os.environ["AMAZON_CREDENTIAL_ID"],
     "CREDENTIAL_SECRET": os.environ["AMAZON_CREDENTIAL_SECRET"],
