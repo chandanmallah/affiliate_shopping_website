@@ -39,6 +39,14 @@
     .pdp-rating-summary .rs-count { font-size:.82rem; color:#6b7280; }
     .pdp-rating-summary:hover .rs-count { text-decoration:underline; }
 
+    /* Editorial pick badge (replaces the headline star rating) */
+    .pdp-editor-badge { display:inline-flex; align-items:center; gap:.4rem; margin:.5rem 0 .2rem; padding:6px 14px; background:#fff4e5; border:1px solid #ffd9a8; border-radius:999px; font-size:.92rem; font-weight:700; color:#8a5a00; }
+
+    /* "Why we recommend this" editorial box */
+    .pdp-why { margin:1rem 0 1.25rem; padding:1rem 1.15rem; background:#f7f9fc; border:1px solid #e5ebf3; border-left:4px solid #1f4e79; border-radius:12px; }
+    .pdp-why-heading { margin:0 0 .4rem; font-size:1.02rem; color:#1f4e79; }
+    .pdp-why-body { margin:0; font-size:.92rem; line-height:1.6; color:#374151; }
+
     .reviews-section { margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid rgba(17,24,39,.08); }
     .reviews-head { display:flex; flex-wrap:wrap; align-items:center; gap:1.25rem; margin-bottom:1.25rem; }
     .reviews-head h2 { margin:0; font-size:1.5rem; }
@@ -167,15 +175,17 @@
 
         <h1 class="pdp-title">{{ product.link.title }}</h1>
 
-        {# ── Rating summary — this is DealHunt's own / member rating, not Amazon's ── #}
-        <a href="#reviews" class="pdp-rating-summary">
-          <span class="star-wrap" aria-hidden="true">
-            <span class="star-bg">★★★★★</span>
-            <span class="star-fg" style="width:{{ avg_pct }}%;">★★★★★</span>
-          </span>
-          <strong>{{ avg_rating }}</strong>
-          <span class="rs-count">{{ site_name }} rating · {{ total_rating_count }} from us &amp; members</span>
-        </a>
+        {# ── Our editorial pick label (our opinion, not a customer star rating) ── #}
+        <div class="pdp-editor-badge">
+          <span aria-hidden="true">{{ product.editorial_badge.emoji }}</span>
+          <span>{{ product.editorial_badge.label }}</span>
+        </div>
+
+        {# ── Original "why we recommend this" editorial copy (unique per product) ── #}
+        <div class="pdp-why">
+          <h2 class="pdp-why-heading">Why we recommend this</h2>
+          <p class="pdp-why-body">{{ product.why_recommend }}</p>
+        </div>
 
         {% if detail.availability.condition %}
           <p class="pdp-condition">Condition: <strong>{{ detail.availability.condition }}</strong></p>

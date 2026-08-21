@@ -41,14 +41,10 @@
 
     <h3 class="card-title"><a href="/product/{{ product.link.slug }}/" class="card-title-link">{{ product.link.title }}</a></h3>
 
-    {# ── DealHunt rating (our own / member rating, not Amazon's) ── #}
-    <div class="card-rating" style="display:flex; align-items:center; gap:.35rem; margin:.15rem 0 .3rem;">
-      <span class="star-wrap" style="position:relative; display:inline-block; font-size:.9rem; line-height:1; letter-spacing:1px;" aria-hidden="true" title="DealHunt rating">
-        <span style="color:#dcdfe4;">★★★★★</span>
-        <span style="color:#f5a623; position:absolute; left:0; top:0; overflow:hidden; white-space:nowrap; width:{{ product.rating_pct }}%;">★★★★★</span>
-      </span>
-      <span style="font-size:.78rem; font-weight:700; color:#111;">{{ product.rating }}</span>
-      <span style="font-size:.68rem; color:#9097a1;">{{ site_name }} rating</span>
+    {# ── Our editorial pick label (our opinion, not a customer star rating) ── #}
+    <div class="card-editor-badge" style="display:inline-flex; align-items:center; gap:.3rem; margin:.15rem 0 .35rem; padding:4px 10px; background:#fff4e5; border:1px solid #ffd9a8; border-radius:999px; font-size:.74rem; font-weight:700; color:#8a5a00; line-height:1;">
+      <span aria-hidden="true">{{ product.editorial_badge.emoji }}</span>
+      <span>{{ product.editorial_badge.label }}</span>
     </div>
 
     <div class="card-meta" style="font-size:.72rem; color:#9097a1; margin:.2rem 0 .15rem; display:flex; gap:.45rem; align-items:center; flex-wrap:wrap;">
@@ -74,8 +70,13 @@
       {% endif %}
     </div>
 
+    {# ── Original "why we recommend" editorial note (unique per product) ── #}
+    <p class="card-why" style="font-size:.76rem; line-height:1.5; color:#555; margin:.1rem 0 .7rem;">
+      <strong style="color:#1f4e79;">Why we recommend:</strong> {{ product.why_recommend|truncatewords:26 }}
+    </p>
+
     <a href="/product/{{ product.link.slug }}/" class="cta-btn custom-secondary-btn" style="margin-top: auto;">
-      Check Offer
+      Check Offer On Amazon
     </a>
   </div>
 </div>

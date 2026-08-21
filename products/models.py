@@ -103,6 +103,130 @@ def build_auto_review(title="", brand="", category="", rating=4.6):
     return random.choice(_REVIEW_NAMES), text
 
 
+# ─────────────────────────────────────────────────────────────
+# EDITORIAL BADGE  (replaces the fake headline star rating on cards)
+# ─────────────────────────────────────────────────────────────
+# These are our OWN editorial labels — an opinion from the site, not a
+# customer/star rating. They are chosen deterministically from the product's
+# own id so each product keeps the same badge on every page load.
+
+_EDITORIAL_BADGES = [
+    ("🏆", "Editor's Choice"),
+    ("🎯", "Top Budget Pick"),
+    ("💎", "Best Value"),
+    ("🔥", "Trending Pick"),
+    ("⚡", "Staff Favourite"),
+    ("👍", "Highly Recommended"),
+    ("🛡️", "Tried & Tested"),
+    ("✅", "Verified Pick"),
+]
+
+
+def editorial_badge_for(product):
+    """
+    Deterministic editorial badge (emoji + label) for a product.
+    Lightly steered by discount / rating, then stable per-product otherwise.
+    Returns a dict so templates can do {{ product.editorial_badge.label }}.
+    """
+    disc = product.discount_percentage or 0
+    rating = float(product.rating or 0)
+    seed = "badge:{}:{}".format(getattr(product, "pk", "") or "", (product.title or "")[:24])
+    rng = random.Random(seed)
+
+    if disc >= 40:
+        emoji, label = rng.choice([
+            ("🎯", "Top Budget Pick"),
+            ("💰", "Biggest Saver"),
+            ("💎", "Best Value"),
+        ])
+    elif rating >= 4.7:
+        emoji, label = rng.choice([
+            ("🏆", "Editor's Choice"),
+            ("👍", "Highly Recommended"),
+        ])
+    else:
+        emoji, label = rng.choice(_EDITORIAL_BADGES)
+
+    return {"emoji": emoji, "label": label}
+
+
+# ─────────────────────────────────────────────────────────────
+# "WHY WE RECOMMEND THIS"  — original 2–3 sentence editorial blurb
+# ─────────────────────────────────────────────────────────────
+# Built from the product's own attributes (brand, category, a real feature,
+# discount) so each blurb references something specific to that product, and
+# seeded by the product id so the wording stays fixed for that product.
+
+_WHY_REASONS = [
+    "the quality-to-price ratio is genuinely hard to beat",
+    "it covers the everyday essentials without cutting the corners that matter",
+    "it feels more premium than the price tag suggests",
+    "it's dependable, easy to use and built to last",
+    "it delivers solid performance without an inflated price",
+    "it balances practicality with a finish that feels a step above",
+]
+_WHY_CLOSERS = [
+    "For most buyers, that makes it a safe, satisfying choice.",
+    "It's the kind of purchase you're unlikely to regret.",
+    "That combination is what earned it a spot on our shortlist.",
+    "For the money, it's an easy one to recommend.",
+    "It's a thoughtful, hassle-free pick for the price.",
+]
+
+
+def build_why_recommend(product):
+    """Compose a short, product-specific 'why we recommend this' paragraph."""
+    seed = "why:{}:{}".format(getattr(product, "pk", "") or "", (product.title or "")[:24])
+    rng = random.Random(seed)
+
+    brand = (product.brand or "").strip()
+    category = (product.category or "").strip()
+    noun = category.split(">")[-1].strip() if category else ""
+    noun_l = (noun or "product").lower()
+
+    # Keep the determiner singular so it always agrees with the "it ..." clauses.
+    article = "this"
+
+    if noun_l == "product":
+        subject = "{} pick".format(brand) if brand else "one"
+    else:
+        subject = "{} {}".format(brand, noun_l) if brand else noun_l
+
+    feats = [f for f in (product.features or []) if isinstance(f, str) and f.strip()]
+    first_feat = feats[0].strip().rstrip(".") if feats else ""
+    disc = product.discount_percentage or 0
+
+    # Sentence 1 — why our team picked it
+    openers = [
+        "Our team picked {a} {s} because {r}.",
+        "We shortlisted {a} {s} because {r}.",
+        "We recommend {a} {s} because {r}.",
+        "{a_cap} {s} made our list because {r}.",
+    ]
+    tmpl = rng.choice(openers)
+    s1 = tmpl.format(a=article, a_cap=article.capitalize(), s=subject, r=rng.choice(_WHY_REASONS))
+    s1 = s1[0].upper() + s1[1:]
+
+    # Sentence 2 — a real, specific highlight (feature or discount)
+    s2_options = []
+    if first_feat:
+        s2_options.append("A standout for us: {}.".format(first_feat))
+        s2_options.append("One highlight worth calling out — {}.".format(first_feat))
+    if disc and disc >= 10:
+        s2_options.append("At the current {}% off, the value on offer is genuinely strong.".format(disc))
+    if not s2_options:
+        s2_options.append("It handles the basics reliably, which is exactly what most buyers want here.")
+        s2_options.append("It's the kind of everyday buy that just works — no fuss, no surprises.")
+    s2 = rng.choice(s2_options)
+
+    parts = [s1, s2]
+    # 2–3 sentences: add a closer roughly 70% of the time (deterministic)
+    if rng.random() < 0.7:
+        parts.append(rng.choice(_WHY_CLOSERS))
+
+    return " ".join(parts)
+
+
 class Product(models.Model):
     """
     Latest known full detail for a product, one row per AmazonLink.
@@ -230,6 +354,16 @@ class Product(models.Model):
     def rating_pct(self):
         """Star-fill percentage (0–100) for the seeded headline rating."""
         return round(float(self.rating or 0) / 5 * 100, 1)
+
+    @property
+    def editorial_badge(self):
+        """Our editorial pick label (emoji + label), shown instead of a star rating."""
+        return editorial_badge_for(self)
+
+    @property
+    def why_recommend(self):
+        """Original 'why we recommend this' blurb, unique per product."""
+        return build_why_recommend(self)
 
     @property
     def approved_reviews(self):
