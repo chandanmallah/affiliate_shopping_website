@@ -157,67 +157,168 @@ def editorial_badge_for(product):
 # discount) so each blurb references something specific to that product, and
 # seeded by the product id so the wording stays fixed for that product.
 
-_WHY_REASONS = [
-    "the quality-to-price ratio is genuinely hard to beat",
-    "it covers the everyday essentials without cutting the corners that matter",
-    "it feels more premium than the price tag suggests",
-    "it's dependable, easy to use and built to last",
-    "it delivers solid performance without an inflated price",
-    "it balances practicality with a finish that feels a step above",
+# NOTE ON PRICE/DISCOUNT TEXT:
+# We deliberately do NOT write any price, MRP, or "X% off" figure into this
+# blurb. Those numbers go stale the moment Amazon changes them, which makes the
+# copy inaccurate. Live pricing should only ever be shown from freshly-fetched
+# API fields, never baked into a stored/generated string.
+
+# Category buckets → keyword hints matched against the product's category/title.
+# First match wins, so order matters (specific before generic).
+_WHY_CATEGORY_HINTS = [
+    ("gifts",       ["hamper", "gift", "rakhi", "diwali", "festive", "combo", "chocolate", "sweet", "basket"]),
+    ("grocery",     ["grocery", "gourmet", "snack", "dry fruit", "ghee", "oil", "tea", "coffee", "pantry", "organic", "spice", "staple", "food"]),
+    ("beauty",      ["beauty", "grooming", "skin", "hair", "shampoo", "serum", "trimmer", "cosmetic", "personal care", "bath", "fragrance", "perfume", "lotion", "cream"]),
+    ("toys",        ["toy", "game", "kids", "kid", "baby", "child", "scooter", "ride-on", "puzzle", "plush", "infant"]),
+    ("electronics", ["electronic", "tech", "mobile", "laptop", "computer", "audio", "headphone", "earbud", "speaker", "cable", "charger", "gadget", "camera", "power bank", "smart", "accessor"]),
+    ("home",        ["home", "kitchen", "decor", "cookware", "appliance", "furniture", "storage", "bedding", "utensil", "organiz", "cleaning", "garden", "bottle", "container"]),
 ]
+
+# Reason clauses per bucket (each begins with "it ..." so the determiner stays
+# singular). The real product brand/category/feature is interpolated separately,
+# which is what keeps each generated string unique per product.
+_WHY_REASONS_BY_CAT = {
+    "electronics": [
+        "it offers modern, reliable connectivity and dependable internal components",
+        "it delivers smooth, plug-and-play performance without a fiddly setup",
+        "it balances speed, build quality and everyday usability",
+        "it packs genuinely useful performance into a clean, space-saving design",
+        "it holds up well under heavy daily use",
+    ],
+    "home": [
+        "its sturdy build and sensible layout solve real everyday frustrations",
+        "it blends a modern look with dependable household durability",
+        "it uses hard-wearing materials that hold up to constant use",
+        "it brings practical, time-saving convenience to daily chores",
+        "it's easy to clean and built to last",
+    ],
+    "gifts": [
+        "it arrives beautifully arranged and ready to present",
+        "it brings together a tasteful selection without feeling cluttered",
+        "it feels far more thoughtful than a standard gift box",
+        "it pairs a lovely presentation with items people actually enjoy",
+        "it takes the stress out of festive and occasion gifting",
+    ],
+    "beauty": [
+        "it leans on gentle, well-considered ingredients for daily use",
+        "it delivers a clean, comfortable experience without heavy residue",
+        "it's designed for reliable, mess-free everyday care",
+        "it suits a range of skin and hair types with predictable results",
+        "it slots easily into an existing routine",
+    ],
+    "toys": [
+        "it's built with child-safe materials and rounded, sturdy construction",
+        "it keeps kids engaged while quietly building real skills",
+        "it stands up to rough, everyday play",
+        "it's easy for parents to set up, fold and store",
+        "it grows with the child instead of being outgrown quickly",
+    ],
+    "grocery": [
+        "it focuses on clean, natural ingredients without needless additives",
+        "it's packaged to keep things fresh and well protected",
+        "it delivers dependable quality and consistency batch to batch",
+        "it's a simple, wholesome upgrade to the everyday pantry",
+        "it keeps things authentic without cutting quality",
+    ],
+    "universal": [
+        "the quality-to-price balance is genuinely hard to beat",
+        "it covers the everyday essentials without cutting the corners that matter",
+        "it feels more premium than its price suggests",
+        "it's dependable, easy to use and built to last",
+        "it handles the fundamentals reliably and without fuss",
+    ],
+}
+
+# Fallback "highlight" sentence when a product has no real feature line to quote.
+_WHY_GENERIC_HIGHLIGHT_BY_CAT = {
+    "electronics": [
+        "It's an easy upgrade for a cleaner, faster setup.",
+        "It's the kind of accessory you plug in and stop thinking about — in a good way.",
+    ],
+    "home": [
+        "It's a small change that makes daily routines noticeably smoother.",
+        "It earns its place through everyday practicality rather than gimmicks.",
+    ],
+    "gifts": [
+        "It makes a warm, ready-to-give impression straight out of the box.",
+        "It's a thoughtful, hassle-free way to mark the occasion.",
+    ],
+    "beauty": [
+        "It's a gentle, no-fuss addition to a daily self-care routine.",
+        "It keeps things simple, comfortable and consistent.",
+    ],
+    "toys": [
+        "It's a screen-free way to keep kids happily occupied.",
+        "It's sturdy enough for real, everyday play.",
+    ],
+    "grocery": [
+        "It's a clean, wholesome staple worth keeping stocked.",
+        "It's an easy way to keep quality high in the kitchen.",
+    ],
+    "universal": [
+        "It's the kind of everyday buy that just works — no fuss, no surprises.",
+        "It handles the basics reliably, which is what most buyers want.",
+    ],
+}
+
 _WHY_CLOSERS = [
     "For most buyers, that makes it a safe, satisfying choice.",
     "It's the kind of purchase you're unlikely to regret.",
-    "That combination is what earned it a spot on our shortlist.",
+    "That's what earned it a spot on our shortlist.",
     "For the money, it's an easy one to recommend.",
-    "It's a thoughtful, hassle-free pick for the price.",
+    "It's a practical, low-risk pick.",
 ]
 
 
+def _why_category_bucket(product):
+    """Map a product's free-text category/title to one of the buckets above."""
+    haystack = "{} {}".format(product.category or "", product.title or "").lower()
+    for bucket, hints in _WHY_CATEGORY_HINTS:
+        if any(h in haystack for h in hints):
+            return bucket
+    return "universal"
+
+
 def build_why_recommend(product):
-    """Compose a short, product-specific 'why we recommend this' paragraph."""
+    """
+    Compose a short, product-specific 'why we recommend this' paragraph.
+
+    Category-aware wording + the product's own brand/category/feature are woven
+    in so each product's blurb is distinct. No price or discount figure is ever
+    written into the text (those must come live from the API, not a stored string).
+    """
     seed = "why:{}:{}".format(getattr(product, "pk", "") or "", (product.title or "")[:24])
     rng = random.Random(seed)
 
+    bucket = _why_category_bucket(product)
     brand = (product.brand or "").strip()
     category = (product.category or "").strip()
     noun = category.split(">")[-1].strip() if category else ""
     noun_l = (noun or "product").lower()
-
-    # Keep the determiner singular so it always agrees with the "it ..." clauses.
-    article = "this"
 
     if noun_l == "product":
         subject = "{} pick".format(brand) if brand else "one"
     else:
         subject = "{} {}".format(brand, noun_l) if brand else noun_l
 
-    feats = [f for f in (product.features or []) if isinstance(f, str) and f.strip()]
-    first_feat = feats[0].strip().rstrip(".") if feats else ""
-    disc = product.discount_percentage or 0
-
-    # Sentence 1 — why our team picked it
+    # Sentence 1 — why our team picked it (reason is category-flavoured)
     openers = [
-        "Our team picked {a} {s} because {r}.",
-        "We shortlisted {a} {s} because {r}.",
-        "We recommend {a} {s} because {r}.",
-        "{a_cap} {s} made our list because {r}.",
+        "Our team picked this {s} because {r}.",
+        "We shortlisted this {s} because {r}.",
+        "We recommend this {s} because {r}.",
+        "This {s} made our list because {r}.",
+        "Our review team favoured this {s} because {r}.",
     ]
-    tmpl = rng.choice(openers)
-    s1 = tmpl.format(a=article, a_cap=article.capitalize(), s=subject, r=rng.choice(_WHY_REASONS))
+    reason = rng.choice(_WHY_REASONS_BY_CAT.get(bucket, _WHY_REASONS_BY_CAT["universal"]))
+    s1 = rng.choice(openers).format(s=subject, r=reason)
     s1 = s1[0].upper() + s1[1:]
 
-    # Sentence 2 — a real, specific highlight (feature or discount)
-    s2_options = []
-    if first_feat:
-        s2_options.append("A standout for us: {}.".format(first_feat))
-        s2_options.append("One highlight worth calling out — {}.".format(first_feat))
-    if disc and disc >= 10:
-        s2_options.append("At the current {}% off, the value on offer is genuinely strong.".format(disc))
-    if not s2_options:
-        s2_options.append("It handles the basics reliably, which is exactly what most buyers want here.")
-        s2_options.append("It's the kind of everyday buy that just works — no fuss, no surprises.")
-    s2 = rng.choice(s2_options)
+    # Sentence 2 — an ORIGINAL, category-appropriate line.
+    # NB: we deliberately do NOT quote the product's Amazon feature bullets here.
+    # Those bullets are already shown verbatim in the "Key features" list, and
+    # repeating scraped seller copy inside our own recommendation both duplicates
+    # on-page text and defeats the point of writing original commentary.
+    s2 = rng.choice(_WHY_GENERIC_HIGHLIGHT_BY_CAT.get(bucket, _WHY_GENERIC_HIGHLIGHT_BY_CAT["universal"]))
 
     parts = [s1, s2]
     # 2–3 sentences: add a closer roughly 70% of the time (deterministic)

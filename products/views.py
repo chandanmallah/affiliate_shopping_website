@@ -25,6 +25,7 @@ from django.core.exceptions import ValidationError
 
 import json
 import re
+import random
 import requests
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from creatorsapi_python_sdk.api_client import ApiClient
@@ -578,6 +579,26 @@ HOMEPAGE_MAX = 120         # max Amazon cards cached for the homepage
 TRENDING_LIMIT = 12        # max cards in each marketplace section on the homepage
 CATEGORY_PAGE_SIZE = PAGE_SIZE
 
+# Hard cap on the "See all" / filtered listing. The listing is a curated single
+# page, not a deep paginated catalog — real browsing is meant to happen via the
+# category strip, and detail pages are shared directly. Keep this at 40–50.
+SEE_ALL_MAX = 48
+
+
+def sample_capped(items, n):
+    """
+    Return up to `n` items chosen at random, reshuffled on every call.
+
+    The source `items` list is already cached (homepage/filter caches), so this
+    just draws a fresh random subset in memory per request — no extra DB work
+    and no slow ORDER BY RANDOM(). Fewer than n items => all of them, shuffled.
+    """
+    items = list(items)
+    if len(items) <= n:
+        random.shuffle(items)
+        return items
+    return random.sample(items, n)
+
 
 def derive_amazon_category(product_data):
     """
@@ -852,6 +873,13 @@ def product_list(request):
                 tags=tags,
                 host_key=host_key,
             )
+        # Browsing (category / "See all") rotates a fresh random subset each
+        # request so it isn't always just the newest items. Search stays in
+        # recency order so results are predictable for the searcher.
+        if query:
+            items = items[:SEE_ALL_MAX]
+        else:
+            items = sample_capped(items, SEE_ALL_MAX)
         paginator = Paginator(items, CATEGORY_PAGE_SIZE)
         page_obj = paginator.get_page(page_number)
 
@@ -896,9 +924,10 @@ def product_list(request):
         return HttpResponse("")   # homepage doesn't infinite-scroll
 
     home = get_homepage_data(tags=tags, host_key=host_key)    # cached per-domain; busted on new products
+    amazon_pool = home["amazon"]
     return render(request, "products/product_list.html", {
-        "page_obj": home["amazon"][:HOMEPAGE_SHOW],
-        "show_all_amazon": len(home["amazon"]) > HOMEPAGE_SHOW,
+        "page_obj": sample_capped(amazon_pool, HOMEPAGE_SHOW),   # fresh random set each load
+        "show_all_amazon": len(amazon_pool) > HOMEPAGE_SHOW,
         "categories": STRIP_CATEGORIES,
         "active_category": "All Deals",
         "is_filtered": False,
